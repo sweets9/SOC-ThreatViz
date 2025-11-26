@@ -1,0 +1,33 @@
+{
+  "name": "soc-global-threat-visualiser",
+  "version": "1.2.3",
+  "description": "Real-time cyber threat visualization system for Security Operations Centers",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "generate-sample-data": "node scripts/generate-sample.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cybersecurity",
+    "threat-map",
+    "soc",
+    "visualization",
+    "security"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "csv-parser": "^3.0.0",
+    "csv-writer": "^1.6.0",
+    "ip-range-check": "^0.2.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

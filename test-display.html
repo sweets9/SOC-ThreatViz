@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Threat Map</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0e27;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .info { color: #00ffff; }
+        pre { background: #1a1e37; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Threat Map - Display Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(message, className = 'info') {
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        function logPre(content) {
+            const pre = document.createElement('pre');
+            pre.textContent = content;
+            results.appendChild(pre);
+        }
+
+        async function runTests() {
+            log('=== Testing Threat Map Display ===', 'info');
+            log('');
+
+            // Test 1: Check API
+            try {
+                log('Test 1: Fetching threat data from API...', 'info');
+                const response = await fetch('/api/threats?timeframe=24h');
+                const data = await response.json();
+
+                if (data.success && data.threats && data.threats.length > 0) {
+                    log(`✓ API working: ${data.count} threats found`, 'success');
+                    log(`  First threat: ${data.threats[0].eventname}`, 'info');
+                    log(`  Source: ${data.threats[0].sourceip} (${data.threats[0].sourcelocation})`, 'info');
+                    log(`  Dest: ${data.threats[0].destinationip} (${data.threats[0].destinationlocation})`, 'info');
+                    log(`  Severity: ${data.threats[0].severity}, Category: ${data.threats[0].category}`, 'info');
+                } else {
+                    log(`✗ API returned no threats!`, 'error');
+                }
+            } catch (e) {
+                log(`✗ API error: ${e.message}`, 'error');
+            }
+
+            log('');
+            log('───────────────────────────────────', 'info');
+            log('');
+
+            // Test 2: Check if scripts load
+            log('Test 2: Checking if JS modules are accessible...', 'info');
+            const scripts = ['/js/data.js', '/js/map.js', '/js/ui.js'];
+
+            for (const script of scripts) {
+                try {
+                    const response = await fetch(script);
+                    const status = response.ok ? '✓' : '✗';
+                    const className = response.ok ? 'success' : 'error';
+                    log(`${status} ${script}: ${response.status}`, className);
+                } catch (e) {
+                    log(`✗ ${script}: ${e.message}`, 'error');
+                }
+            }
+
+            log('');
+            log('───────────────────────────────────', 'info');
+            log('');
+
+            // Test 3: Simulate initialization
+            log('Test 3: Testing initialization sequence...', 'info');
+            log('  Step 1: Check if Cesium would load', 'info');
+            log('  (This is a simulation - actual test needs browser)', 'info');
+            log('  Step 2: initMap() would be called', 'info');
+            log('  Step 3: initUI() would be called', 'info');
+            log('  Step 4: startDataFetching() would be called', 'info');
+            log('  Step 5: Data fetched → updateMapData() called', 'info');
+            log('  Step 6: updateAttackFeed() called', 'info');
+
+            log('');
+            log('───────────────────────────────────', 'info');
+            log('');
+
+            log('✓ All tests completed!', 'success');
+            log('');
+            log('To see the actual map:', 'info');
+            log('1. Open http://localhost:3000 in your browser', 'info');
+            log('2. Open browser console (F12)', 'info');
+            log('3. You should see:', 'info');
+            log('   - 🌐 Initializing Live Global Cyber Threat Map...', 'info');
+            log('   - 📍 Initializing map...', 'info');
+            log('   - ✓ Map initialized successfully', 'info');
+            log('   - 🎛️  Initializing UI controls...', 'info');
+            log('   - 📡 Starting data fetch...', 'info');
+            log('   - ✓ Loaded [N] threats, [N] in timeframe', 'info');
+            log('   - 📍 Updating map with [N] threats', 'info');
+            log('   - 📋 Updating attack feed', 'info');
+            log('   - ✅ Application initialized successfully!', 'info');
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Map - Diagnostic</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0e27;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .test { margin: 10px 0; }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        .info { color: #00ffff; }
+    </style>
+</head>
+<body>
+    <h1>Live Global Cyber Threat Map - Diagnostic</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        async function runTests() {
+            log('Starting diagnostic tests...', 'info');
+            log('─────────────────────────────────────', 'info');
+
+            // Test 1: Check API endpoint
+            try {
+                log('Test 1: Checking API endpoint...', 'info');
+                const response = await fetch('/api/threats?timeframe=24h');
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✓ API working - ${data.count} threats loaded`, 'pass');
+                } else {
+                    log(`✗ API failed with status: ${response.status}`, 'fail');
+                }
+            } catch (e) {
+                log(`✗ API error: ${e.message}`, 'fail');
+            }
+
+            // Test 2: Check if Cesium is loaded
+            log('─────────────────────────────────────', 'info');
+            log('Test 2: Checking Cesium.js...', 'info');
+            if (typeof Cesium !== 'undefined') {
+                log(`✓ Cesium.js loaded - Version: ${Cesium.VERSION}`, 'pass');
+            } else {
+                log('✗ Cesium.js not loaded!', 'fail');
+            }
+
+            // Test 3: Check frontend scripts
+            log('─────────────────────────────────────', 'info');
+            log('Test 3: Checking frontend scripts...', 'info');
+
+            try {
+                const dataJsResponse = await fetch('/js/data.js');
+                log(`${dataJsResponse.ok ? '✓' : '✗'} data.js: ${dataJsResponse.status}`, dataJsResponse.ok ? 'pass' : 'fail');
+            } catch (e) {
+                log(`✗ data.js error: ${e.message}`, 'fail');
+            }
+
+            try {
+                const mapJsResponse = await fetch('/js/map.js');
+                log(`${mapJsResponse.ok ? '✓' : '✗'} map.js: ${mapJsResponse.status}`, mapJsResponse.ok ? 'pass' : 'fail');
+            } catch (e) {
+                log(`✗ map.js error: ${e.message}`, 'fail');
+            }
+
+            try {
+                const uiJsResponse = await fetch('/js/ui.js');
+                log(`${uiJsResponse.ok ? '✓' : '✗'} ui.js: ${uiJsResponse.status}`, uiJsResponse.ok ? 'pass' : 'fail');
+            } catch (e) {
+                log(`✗ ui.js error: ${e.message}`, 'fail');
+            }
+
+            // Test 4: Check CSS
+            log('─────────────────────────────────────', 'info');
+            log('Test 4: Checking CSS...', 'info');
+            try {
+                const cssResponse = await fetch('/css/style.css');
+                log(`${cssResponse.ok ? '✓' : '✗'} style.css: ${cssResponse.status}`, cssResponse.ok ? 'pass' : 'fail');
+            } catch (e) {
+                log(`✗ style.css error: ${e.message}`, 'fail');
+            }
+
+            log('─────────────────────────────────────', 'info');
+            log('Diagnostic complete!', 'info');
+            log('', 'info');
+            log('If all tests pass, open index.html and check browser console (F12) for errors', 'info');
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

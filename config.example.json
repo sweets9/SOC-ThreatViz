@@ -1,0 +1,32 @@
+{
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0"
+  },
+  "security": {
+    "apiToken": "your-secure-api-token-here",
+    "allowedIPs": [
+      "127.0.0.1",
+      "::1",
+      "192.168.1.0/24",
+      "10.0.0.0/8"
+    ]
+  },
+  "data": {
+    "csvPath": "./data/threat_data.csv",
+    "pollInterval": 5000,
+    "maxEvents": 10000,
+    "timeframes": {
+      "1h": 3600000,
+      "24h": 86400000,
+      "7d": 604800000
+    }
+  },
+  "map": {
+    "defaultView": "globe",
+    "centerLat": -25.0,
+    "centerLon": 133.0,
+    "autoRotate": false,
+    "rotateInterval": 60000
+  }
+}

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Global Threat Visualiser</title>
+
+    <!-- Globe.GL for 3D globe visualization -->
+    <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <h1>🌐 SOC Global Threat Visualiser</h1>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Live</span>
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Threats Blocked</span>
+                    <span class="stat-value" id="total-threats">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active</span>
+                    <span class="stat-value" id="active-threats">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Critical</span>
+                    <span class="stat-value critical" id="critical-threats">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="toggle-settings" class="btn btn-hamburger" title="Toggle Settings Panel">
+                <span class="hamburger-icon">☰</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Controls Panel (Collapsible) -->
+    <div class="controls" id="controls-panel">
+        <div class="control-group">
+            <label>View Mode</label>
+            <button id="toggle-view" class="btn btn-primary">
+                <span id="view-icon">🌍</span>
+                <span id="view-text">3D Globe</span>
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Auto Rotate</label>
+            <button id="toggle-rotate" class="btn btn-secondary">
+                <span>🔄</span>
+                <span id="rotate-text">Enable</span>
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Time Frame</label>
+            <div class="btn-group">
+                <button class="btn btn-timeframe" data-timeframe="1h">1h</button>
+                <button class="btn btn-timeframe active" data-timeframe="24h">24h</button>
+                <button class="btn btn-timeframe" data-timeframe="7d">7d</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Data Mode</label>
+            <select id="data-mode" class="select">
+                <option value="test" selected>Test Data</option>
+                <option value="live">Live Data</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Left Sidebar Attack Feed -->
+    <div class="attack-sidebar" id="attack-sidebar">
+        <div class="sidebar-header">
+            <h2>🔴 Attack Feed</h2>
+            <button id="pause-feed" class="btn btn-small">⏸</button>
+        </div>
+        <div class="sidebar-content" id="feed-content">
+            <!-- Attack items will be dynamically added here -->
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map-container">
+        <div id="globeViz"></div>
+
+        <!-- Loading indicator -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading threat data...</p>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <h3>Attack Categories</h3>
+            <div class="legend-item clickable" data-category="Infiltration Attempts">
+                <span class="legend-color" style="background: #ff4444;"></span>
+                <span class="legend-text">Infiltration Attempts</span>
+                <span class="legend-count" id="count-infiltration-attempts">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-category="Phishing Emails">
+                <span class="legend-color" style="background: #ff9944;"></span>
+                <span class="legend-text">Phishing Emails</span>
+                <span class="legend-count" id="count-phishing-emails">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-category="Botnet Activity">
+                <span class="legend-color" style="background: #ffdd44;"></span>
+                <span class="legend-text">Botnet Activity</span>
+                <span class="legend-count" id="count-botnet-activity">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-category="Scanning Activity">
+                <span class="legend-color" style="background: #44ff44;"></span>
+                <span class="legend-text">Scanning Activity</span>
+                <span class="legend-count" id="count-scanning-activity">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-category="Antivirus Malware">
+                <span class="legend-color" style="background: #4444ff;"></span>
+                <span class="legend-text">Antivirus Malware</span>
+                <span class="legend-count" id="count-antivirus-malware">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-category="Web Gateway Threats">
+                <span class="legend-color" style="background: #ff44ff;"></span>
+                <span class="legend-text">Web Gateway Threats</span>
+                <span class="legend-count" id="count-web-gateway-threats">(0)</span>
+            </div>
+
+            <h3 style="margin-top: 15px;">Severity</h3>
+            <div class="legend-item clickable" data-severity="low">
+                <span class="legend-color" style="background: #666;"></span>
+                <span class="legend-text">Low</span>
+                <span class="legend-count" id="count-severity-low">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-severity="medium">
+                <span class="legend-color" style="background: #ffaa00;"></span>
+                <span class="legend-text">Medium</span>
+                <span class="legend-count" id="count-severity-medium">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-severity="high">
+                <span class="legend-color" style="background: #ff6600;"></span>
+                <span class="legend-text">High</span>
+                <span class="legend-count" id="count-severity-high">(0)</span>
+            </div>
+            <div class="legend-item clickable" data-severity="critical">
+                <span class="legend-color" style="background: #ff0000;"></span>
+                <span class="legend-text">Critical</span>
+                <span class="legend-count" id="count-severity-critical">(0)</span>
+                <!DOCTYPE html>
+                <html lang="en">
+
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>SOC Global Threat Visualiser</title>
+
+                    <!-- Globe.GL for 3D globe visualization -->
+                    <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
+
+                    <!-- Custom CSS -->
+                    <link rel="stylesheet" href="css/style.css">
+                </head>
+
+                <body>
+                    <!-- Header -->
+                    <header class="header">
+                        <div class="header-left">
+                            <h1>🌐 SOC Global Threat Visualiser</h1>
+                            <div class="status-indicator">
+                                <span class="status-dot"></span>
+                                <span class="status-text">Live</span>
+                            </div>
+                        </div>
+                        <div class="header-center">
+                            <div class="stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Threats Blocked</span>
+                                    <span class="stat-value" id="total-threats">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Active</span>
+                                    <span class="stat-value" id="active-threats">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Critical</span>
+                                    <span class="stat-value critical" id="critical-threats">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <button id="toggle-settings" class="btn btn-hamburger" title="Toggle Settings Panel">
+                                <span class="hamburger-icon">☰</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Controls Panel (Collapsible) -->
+                    <div class="controls" id="controls-panel">
+                        <div class="control-group">
+                            <label>View Mode</label>
+                            <button id="toggle-view" class="btn btn-primary">
+                                <span id="view-icon">🌍</span>
+                                <span id="view-text">3D Globe</span>
+                            </button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Auto Rotate</label>
+                            <button id="toggle-rotate" class="btn btn-secondary">
+                                <span>🔄</span>
+                                <span id="rotate-text">Enable</span>
+                            </button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Time Frame</label>
+                            <div class="btn-group">
+                                <button class="btn btn-timeframe" data-timeframe="1h">1h</button>
+                                <button class="btn btn-timeframe active" data-timeframe="24h">24h</button>
+                                <button class="btn btn-timeframe" data-timeframe="7d">7d</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Data Mode</label>
+                            <select id="data-mode" class="select">
+                                <option value="test" selected>Test Data</option>
+                                <option value="live">Live Data</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Left Sidebar Attack Feed -->
+                    <div class="attack-sidebar" id="attack-sidebar">
+                        <div class="sidebar-header">
+                            <h2>🔴 Attack Feed</h2>
+                            <button id="pause-feed" class="btn btn-small">⏸</button>
+                        </div>
+                        <div class="sidebar-content" id="feed-content">
+                            <!-- Attack items will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div id="map-container">
+                        <div id="globeViz"></div>
+
+                        <!-- Loading indicator -->
+                        <div id="loading" class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading threat data...</p>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="legend">
+                            <h3>Attack Categories</h3>
+                            <div class="legend-item clickable" data-category="Infiltration Attempts">
+                                <span class="legend-color" style="background: #ff4444;"></span>
+                                <span class="legend-text">Infiltration Attempts</span>
+                                <span class="legend-count" id="count-infiltration-attempts">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-category="Phishing Emails">
+                                <span class="legend-color" style="background: #ff9944;"></span>
+                                <span class="legend-text">Phishing Emails</span>
+                                <span class="legend-count" id="count-phishing-emails">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-category="Botnet Activity">
+                                <span class="legend-color" style="background: #ffdd44;"></span>
+                                <span class="legend-text">Botnet Activity</span>
+                                <span class="legend-count" id="count-botnet-activity">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-category="Scanning Activity">
+                                <span class="legend-color" style="background: #44ff44;"></span>
+                                <span class="legend-text">Scanning Activity</span>
+                                <span class="legend-count" id="count-scanning-activity">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-category="Antivirus Malware">
+                                <span class="legend-color" style="background: #4444ff;"></span>
+                                <span class="legend-text">Antivirus Malware</span>
+                                <span class="legend-count" id="count-antivirus-malware">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-category="Web Gateway Threats">
+                                <span class="legend-color" style="background: #ff44ff;"></span>
+                                <span class="legend-text">Web Gateway Threats</span>
+                                <span class="legend-count" id="count-web-gateway-threats">(0)</span>
+                            </div>
+
+                            <h3 style="margin-top: 15px;">Severity</h3>
+                            <div class="legend-item clickable" data-severity="low">
+                                <span class="legend-color" style="background: #666;"></span>
+                                <span class="legend-text">Low</span>
+                                <span class="legend-count" id="count-severity-low">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-severity="medium">
+                                <span class="legend-color" style="background: #ffaa00;"></span>
+                                <span class="legend-text">Medium</span>
+                                <span class="legend-count" id="count-severity-medium">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-severity="high">
+                                <span class="legend-color" style="background: #ff6600;"></span>
+                                <span class="legend-text">High</span>
+                                <span class="legend-count" id="count-severity-high">(0)</span>
+                            </div>
+                            <div class="legend-item clickable" data-severity="critical">
+                                <span class="legend-color" style="background: #ff0000;"></span>
+                                <span class="legend-text">Critical</span>
+                                <span class="legend-count" id="count-severity-critical">(0)</span>
+                            </div>
+
+                            <!-- Top 5 Attacker Locations (Moved here) -->
+                            <div id="top-attackers-list" class="attacker-list">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Debug Info Bar -->
+                    <div class="debug-bar">
+                        <span class="app-name">SOC Global Threat Visualiser</span>
+                        <span class="version">v<span id="app-version">1.2.3</span></span>
+                        <span>CSV: <span id="csv-size">0 KB</span></span>
+                        <span>Entries: <span id="csv-entries">0</span></span>
+                        <span>Updated: <span id="last-updated">--</span></span>
+                    </div>
+
+                    <!-- Attack Detail Modal -->
+                    <div id="attack-modal" class="modal hidden">
+                        <div class="modal-content">
+                            <span class="modal-close">&times;</span>
+                            <h2>Attack Details</h2>
+                            <div id="attack-details">
+                                <!-- Details will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scripts -->
+                    <script src="js/data.js"></script>
+                    <script src="js/map.js"></script>
+                    <script src="js/ui.js"></script>
+                    <script>
+                        // Application version
+                        const APP_VERSION = '1.2.3';
+
+                        // Initialize the application
+                        document.addEventListener('DOMContentLoaded', async () => {
+                            console.log('🌐 Initializing SOC Global Threat Visualiser...');
+
+                            // Set version in debug bar
+                            const versionEl = document.getElementById('app-version');
+                            if (versionEl) versionEl.textContent = APP_VERSION;
+
+                            // Check if Globe is loaded
+                            if (typeof Globe === 'undefined') {
+                                console.error('✗ Globe.GL failed to load from CDN!');
+                                const container = document.getElementById('globeViz');
+                                if (container) {
+                                    container.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ff4444; background: #000000; padding: 20px; text-align: center; flex-direction: column;">
+                            <h2>⚠️ Failed to Load Map Library</h2>
+                            <p>Globe.GL could not be loaded from the CDN.</p>
+                            <p>Please check your internet connection and reload the page.</p>
+                            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Reload Page
+                            </button>
+                        </div>
+                    `;
+                                }
+                                return;
+                            }
+
+                            try {
+                                // Initialize map first
+                                console.log('📍 Initializing map...');
+                                await initMap();
+
+                                // Initialize UI controls
+                                console.log('🎛️  Initializing UI controls...');
+                                initUI();
+
+                                // Start data fetching
+                                console.log('📡 Starting data fetch...');
+                                startDataFetching();
+
+                                console.log('✅ Application initialized successfully!');
+                            } catch (error) {
+                                console.error('❌ Initialization error:', error);
+                            }
+                        });
+                    </script>
+                </body>
+
+                </html>
