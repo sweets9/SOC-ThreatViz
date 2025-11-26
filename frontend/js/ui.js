@@ -1,8 +1,7 @@
 // UI Control Logic for Live Global Cyber Threat Map
 
 let settingsVisible = false;
-let is3DMode = true;
-let isAutoRotate = false;
+// Note: is3DMode and isAutoRotate are defined in map.js as the authoritative source
 
 /**
  * Initialize UI controls
