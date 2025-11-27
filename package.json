@@ -1,6 +1,6 @@
 {
   "name": "soc-global-threat-visualiser",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Real-time cyber threat visualization system for Security Operations Centers",
   "main": "backend/server.js",
   "scripts": {

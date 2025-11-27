@@ -181,7 +181,7 @@ if (!fs.existsSync(config.data.csvPath)) {
 // Start server
 app.listen(PORT, HOST, () => {
     console.log('╔══════════════════════════════════════════════════════════╗');
-    console.log('║   SOC Global Threat Visualiser - Backend Server v1.3.0  ║');
+    console.log('║   SOC Global Threat Visualiser - Backend Server v1.4.0  ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
     console.log('');
     console.log(`🚀 Server running on http://${HOST}:${PORT}`);
