@@ -242,9 +242,12 @@ function initMap() {
  * Uses smooth transitions - arcs fade in/out instead of blinking
  */
 function updateMapData(threats) {
-    if (!globe) return;
-
     console.log(`🎯 Updating map with ${threats.length} threats`);
+    
+    // Always update category/severity counts in the legend, even without globe
+    updateCategoryCounts(threats);
+    
+    if (!globe) return;
 
     // Filter by visible categories
     // Filtering is now done in data.js, so we use threats directly (which is filteredData)
@@ -300,13 +303,6 @@ function updateMapData(threats) {
         }));
 
     globe.ringsData(rings);
-
-    // Update category counts in legend
-    // We don't need to update counts here as they should be updated by the UI based on filtered data
-    // But we might want to update the numbers in the legend to reflect current view
-    if (typeof updateCategoryCounts === 'function') {
-        updateCategoryCounts(threats);
-    }
 
     // Update map labels for top source cities
     updateMapLabels(threats);

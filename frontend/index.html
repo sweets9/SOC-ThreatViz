@@ -232,7 +232,8 @@
             }
 
             // Check if Globe is loaded
-            if (typeof Globe === 'undefined') {
+            const globeLoaded = typeof Globe !== 'undefined';
+            if (!globeLoaded) {
                 console.error('✗ Globe.GL failed to load from CDN!');
                 const container = document.getElementById('globeViz');
                 if (container) {
@@ -247,7 +248,7 @@
                         </div>
                     `;
                 }
-                return;
+                // Continue to load data even without globe
             }
 
             try {
@@ -255,9 +256,11 @@
                 console.log('📋 Loading destination labels...');
                 await loadDestinationLabels();
 
-                // Initialize map first
-                console.log('📍 Initializing map...');
-                await initMap();
+                // Initialize map first (only if Globe is loaded)
+                if (globeLoaded) {
+                    console.log('📍 Initializing map...');
+                    await initMap();
+                }
 
                 // Initialize UI controls
                 console.log('🎛️  Initializing UI controls...');
