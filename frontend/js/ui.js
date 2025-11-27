@@ -506,6 +506,7 @@ function updateFeedSpeed(avgVolume) {
 
 /**
  * Update Top 5 Attacker Locations list
+ * Now clickable to show list of attacks from that location
  */
 function updateTopAttackers(threats) {
     const listElement = document.getElementById('top-attackers-list');
@@ -521,27 +522,29 @@ function updateTopAttackers(threats) {
                 count: 0,
                 lat: t.sourcelat,
                 lon: t.sourcelon,
-                name: locKey
+                name: locKey,
+                threats: []
             };
         }
         locationCounts[locKey].count++;
+        locationCounts[locKey].threats.push(t);
     });
 
     const sortedLocations = Object.values(locationCounts)
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
+    // Store for click handler access
+    window.topAttackerLocations = sortedLocations;
+
     let html = '';
     if (sortedLocations.length === 0) {
         html = '<div class="empty-list">No data available</div>';
     } else {
-        html = '<div class="legend-title" style="margin-top: 15px; margin-bottom: 5px; font-weight: bold;">Top 5 Attacker Locations</div>';
+        html = '<div class="legend-title">Top 5 Attacker Locations</div>';
         sortedLocations.forEach((loc, index) => {
-            const isActive = typeof isFilterActive === 'function' && isFilterActive('location', loc.name);
-            const activeClass = isActive ? 'disabled' : '';
-
             html += `
-                <div class="attacker-row clickable ${activeClass}" data-location="${loc.name}">
+                <div class="attacker-row clickable" data-location-index="${index}">
                     <span class="attacker-rank">#${index + 1}</span>
                     <span class="attacker-info">
                         <span class="attacker-location">${loc.name}</span>
@@ -554,16 +557,105 @@ function updateTopAttackers(threats) {
 
     listElement.innerHTML = html;
 
-    // Add click listeners to new elements
+    // Add click listeners to show attacks from that location
     const locationItems = listElement.querySelectorAll('.attacker-row.clickable');
     locationItems.forEach(item => {
         item.addEventListener('click', () => {
-            const location = item.dataset.location;
-            if (location && typeof toggleFilter === 'function') {
-                toggleFilter('location', location);
-                // UI update will happen on re-render
+            const index = parseInt(item.dataset.locationIndex);
+            const loc = window.topAttackerLocations[index];
+            if (loc) {
+                showCityAttacks(loc.name, loc.threats, 'source');
             }
         });
+    });
+}
+
+/**
+ * Show attacks from/to a specific city
+ * @param {string} cityName - Name of the city
+ * @param {array} attacks - Array of threat objects
+ * @param {string} type - 'source' or 'destination'
+ */
+function showCityAttacks(cityName, attacks, type) {
+    const modal = document.getElementById('city-filter-modal');
+    const titleEl = document.getElementById('city-filter-title');
+    const listEl = document.getElementById('city-attack-list');
+    
+    if (!modal || !titleEl || !listEl) return;
+    
+    // Set title
+    const typeLabel = type === 'source' ? 'from' : 'to';
+    titleEl.textContent = `Attacks ${typeLabel} ${cityName} (${attacks.length})`;
+    
+    // Sort attacks by timestamp (newest first)
+    const sortedAttacks = [...attacks].sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Build attack list
+    let html = '';
+    sortedAttacks.slice(0, 50).forEach((threat, index) => {
+        const severityClass = threat.severity.toLowerCase();
+        const timeAgo = typeof formatTimestamp === 'function' ? formatTimestamp(threat.timestamp) : 'Unknown';
+        
+        html += `
+            <div class="city-attack-item ${severityClass}" data-city-attack-index="${index}">
+                <div class="city-attack-header">
+                    <span class="city-attack-time">${timeAgo}</span>
+                    <span class="city-attack-severity ${severityClass}">${threat.severity}</span>
+                </div>
+                <div class="city-attack-name">${threat.eventname}</div>
+                <div class="city-attack-details">
+                    ${threat.sourceip} → ${threat.destinationip}
+                    <br>${threat.category}
+                </div>
+            </div>
+        `;
+    });
+    
+    if (html === '') {
+        html = '<div class="empty-list">No attacks found</div>';
+    }
+    
+    listEl.innerHTML = html;
+    
+    // Store attacks for click handler
+    window.cityModalAttacks = sortedAttacks.slice(0, 50);
+    
+    // Add click handlers to show details
+    const items = listEl.querySelectorAll('.city-attack-item');
+    items.forEach(item => {
+        item.addEventListener('click', () => {
+            const idx = parseInt(item.dataset.cityAttackIndex);
+            if (window.cityModalAttacks[idx]) {
+                closeCityFilter();
+                showAttackDetails(window.cityModalAttacks[idx]);
+            }
+        });
+    });
+    
+    // Show modal
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Close city filter modal
+ */
+function closeCityFilter() {
+    const modal = document.getElementById('city-filter-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Filter attacks by city name (source or destination)
+ */
+function getAttacksByCity(cityName) {
+    if (!window.threatData || !Array.isArray(window.threatData)) return [];
+    
+    return window.threatData.filter(t => {
+        const sourceName = t.sourcename || '';
+        const destName = t.destinationname || '';
+        return sourceName.includes(cityName) || destName.includes(cityName);
     });
 }
 
@@ -581,4 +673,7 @@ if (typeof window !== 'undefined') {
     window.toggleSettingsPanel = toggleSettingsPanel;
     window.updateTopAttackers = updateTopAttackers;
     window.setTheme = setTheme;
+    window.showCityAttacks = showCityAttacks;
+    window.closeCityFilter = closeCityFilter;
+    window.getAttacksByCity = getAttacksByCity;
 }

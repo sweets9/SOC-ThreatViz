@@ -245,18 +245,23 @@ function generateDestinationIP(site) {
 
 /**
  * Generate random volume (0-100)
+ * Volume is now independent of severity - it represents "attack count/intensity"
+ * The severity value comes from the SIEM
  */
-function randomVolume(severity) {
-    // Higher severity tends to have higher volume
-    const baseVolume = {
-        'low': [10, 40],
-        'medium': [30, 70],
-        'high': [60, 90],
-        'critical': [75, 100]
-    };
-
-    const [min, max] = baseVolume[severity] || [20, 80];
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+function randomVolume() {
+    // Random volume between 10 and 100
+    // Most attacks are in the 20-60 range
+    const rand = Math.random();
+    if (rand < 0.3) {
+        // 30% small volume
+        return Math.floor(Math.random() * 30) + 10;
+    } else if (rand < 0.8) {
+        // 50% medium volume
+        return Math.floor(Math.random() * 40) + 30;
+    } else {
+        // 20% high volume
+        return Math.floor(Math.random() * 30) + 70;
+    }
 }
 
 /**
@@ -305,7 +310,7 @@ function generateThreat(hoursAgo = 24) {
         destinationlocation: `${dest.lat},${dest.lon}`,
         destinationcity: dest.city,
         destinationcountry: dest.country,
-        volume: randomVolume(severity),
+        volume: randomVolume(),
         severity: severity,
         category: category,
         detectionsource: randomElement(detectionSources),

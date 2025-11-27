@@ -393,7 +393,7 @@ body {
     position: fixed;
     top: 70px;
     left: 320px;
-    right: 260px;
+    right: 250px;
     bottom: 30px;
     background: #000000;
     display: flex;
@@ -448,16 +448,19 @@ body {
 
 /* Legend */
 .legend {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    position: fixed;
+    top: 80px;
+    right: 10px;
     background: rgba(0, 0, 0, 0.95);
     padding: 15px;
     border-radius: 8px;
     border: 1px solid var(--theme-border);
     min-width: 220px;
+    max-width: 240px;
     z-index: 100;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    max-height: calc(100vh - 130px);
+    overflow-y: auto;
 }
 
 .legend h3 {
@@ -559,7 +562,7 @@ body {
 }
 
 .attack-item.medium {
-    border-left-color: #ffaa00;
+    border-left-color: #cc8844;
 }
 
 .attack-item.low {
@@ -620,8 +623,8 @@ body {
 }
 
 .attack-severity.medium {
-    background: #ffaa00;
-    color: #000;
+    background: #cc8844;
+    color: #fff;
 }
 
 .attack-severity.low {
@@ -837,7 +840,7 @@ body {
 }
 
 .detail-value.severity-medium {
-    color: #ffaa00;
+    color: #cc8844;
 }
 
 .detail-value.severity-low {
@@ -954,6 +957,206 @@ body {
         left: 0;
         bottom: 230px;
     }
+}
+
+/* Top 5 Attacker List Styles */
+.attacker-list {
+    margin-top: 15px;
+    border-top: 1px solid var(--theme-border);
+    padding-top: 10px;
+}
+
+.legend-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--theme-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.attacker-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    margin: 0 -8px 4px -8px;
+    border-radius: 4px;
+    font-size: 11px;
+    transition: all 0.2s ease;
+}
+
+.attacker-row.clickable {
+    cursor: pointer;
+}
+
+.attacker-row.clickable:hover {
+    background: rgba(var(--theme-primary-rgb), 0.15);
+    transform: translateX(2px);
+}
+
+.attacker-row.disabled {
+    opacity: 0.4;
+    background: rgba(100, 100, 100, 0.1);
+}
+
+.attacker-rank {
+    color: var(--theme-primary);
+    font-weight: 700;
+    min-width: 20px;
+}
+
+.attacker-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.attacker-location {
+    color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attacker-count {
+    color: #888;
+    font-size: 10px;
+}
+
+.empty-list {
+    color: #666;
+    font-size: 11px;
+    font-style: italic;
+    text-align: center;
+    padding: 10px;
+}
+
+/* City Filter Modal */
+.city-filter-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(145deg, rgba(15, 20, 30, 0.98) 0%, rgba(5, 10, 20, 0.99) 100%);
+    border: 1px solid var(--theme-border);
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 350px;
+    max-width: 500px;
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 10001;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 40px var(--theme-glow);
+}
+
+.city-filter-modal.hidden {
+    display: none;
+}
+
+.city-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--theme-border);
+}
+
+.city-filter-header h3 {
+    color: var(--theme-primary);
+    font-size: 16px;
+    margin: 0;
+}
+
+.city-filter-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    color: #888;
+    transition: all 0.2s;
+}
+
+.city-filter-close:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: #ff4444;
+    color: #ff4444;
+}
+
+.city-attack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.city-attack-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border-left: 3px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.city-attack-item:hover {
+    background: rgba(var(--theme-primary-rgb), 0.1);
+    transform: translateX(3px);
+}
+
+.city-attack-item.critical {
+    border-left-color: #ff0000;
+}
+
+.city-attack-item.high {
+    border-left-color: #ff6600;
+}
+
+.city-attack-item.medium {
+    border-left-color: #cc8844;
+}
+
+.city-attack-item.low {
+    border-left-color: #666;
+}
+
+.city-attack-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.city-attack-time {
+    color: #888;
+    font-size: 10px;
+}
+
+.city-attack-severity {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.city-attack-name {
+    color: var(--theme-text);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.city-attack-details {
+    color: #888;
+    font-size: 10px;
+    margin-top: 4px;
 }
 
 /* Custom Cesium Widget Styles */

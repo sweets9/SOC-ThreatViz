@@ -126,7 +126,7 @@ function initMap() {
                     const severityColors = {
                         'critical': '#ff0000',  // Bright red
                         'high': '#ff6600',      // Orange
-                        'medium': '#ffaa00',    // Yellow-orange
+                        'medium': '#cc8844',    // Muted brown/tan (less yellow)
                         'low': '#888888'        // Gray
                     };
                     const color = severityColors[severity] || '#ffaa00';

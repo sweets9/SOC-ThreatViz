@@ -272,7 +272,7 @@ function getCategoryColor(category) {
 function getSeverityColor(severity) {
     const colors = {
         'low': '#666666',
-        'medium': '#ffaa00',
+        'medium': '#cc8844',
         'high': '#ff6600',
         'critical': '#ff0000'
     };

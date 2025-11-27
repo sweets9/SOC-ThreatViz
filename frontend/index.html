@@ -155,7 +155,7 @@
                 <span class="legend-count" id="count-severity-low">(0)</span>
             </div>
             <div class="legend-item clickable" data-severity="medium">
-                <span class="legend-color" style="background: #ffaa00;"></span>
+                <span class="legend-color" style="background: #cc8844;"></span>
                 <span class="legend-text">Medium</span>
                 <span class="legend-count" id="count-severity-medium">(0)</span>
             </div>
@@ -198,6 +198,17 @@
                     <!-- Details will be populated dynamically -->
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- City Filter Modal -->
+    <div id="city-filter-modal" class="city-filter-modal hidden">
+        <div class="city-filter-header">
+            <h3 id="city-filter-title">Attacks from City</h3>
+            <span class="city-filter-close" onclick="closeCityFilter()">&times;</span>
+        </div>
+        <div id="city-attack-list" class="city-attack-list">
+            <!-- Attack items will be populated dynamically -->
         </div>
     </div>
 
