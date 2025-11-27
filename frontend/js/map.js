@@ -498,9 +498,10 @@ function runFocusCycle() {
 }
 
 /**
- * Set focus mode on or off
+ * Set focus mode on or off with smooth fade transition
  */
 function setFocusMode(focused) {
+    const previousMode = isFocusMode;
     isFocusMode = focused;
     
     if (focused) {
@@ -509,16 +510,22 @@ function setFocusMode(focused) {
         console.log('🟢 Normal Mode: Showing all threats');
     }
 
-    // Re-render arcs with new styling
+    // Smoothly transition arcs by using the built-in transition duration
     if (globe && currentArcs.length > 0) {
-        // Force re-render by setting data again
-        globe.arcsData([]);
+        // Set longer transition for smooth fade effect
+        globe.arcsTransitionDuration(800);
+        
+        // Re-apply arcs data to trigger re-render with new styling
+        // The arcs will smoothly transition to new colors/sizes
+        globe.arcsData(currentArcs);
+        
+        // Reset transition duration after animation
         setTimeout(() => {
-            globe.arcsData(currentArcs);
-        }, 50);
+            globe.arcsTransitionDuration(1000);
+        }, 850);
     }
 
-    // Update feed styling
+    // Update feed styling with CSS transitions
     updateFeedFocusMode(focused);
 }
 

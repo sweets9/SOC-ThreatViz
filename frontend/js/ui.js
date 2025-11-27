@@ -73,6 +73,18 @@ function setupControlListeners() {
         });
     }
 
+    // Theme selector
+    const themeSelector = document.getElementById('theme-selector');
+    if (themeSelector) {
+        themeSelector.addEventListener('change', (e) => {
+            setTheme(e.target.value);
+        });
+        // Apply saved theme on load
+        const savedTheme = localStorage.getItem('soc-theme') || 'crimson';
+        themeSelector.value = savedTheme;
+        setTheme(savedTheme);
+    }
+
     // Pause feed button
     const pauseFeedBtn = document.getElementById('pause-feed');
     if (pauseFeedBtn) {
@@ -148,11 +160,13 @@ function toggleSettingsPanel() {
 
     if (controlsPanel) {
         if (settingsVisible) {
+            controlsPanel.classList.add('visible');
             controlsPanel.classList.remove('hidden');
             // Adjust positions when settings shown
             if (sidebar) sidebar.style.top = '130px';
             if (mapContainer) mapContainer.style.top = '130px';
         } else {
+            controlsPanel.classList.remove('visible');
             controlsPanel.classList.add('hidden');
             // Adjust positions when settings hidden
             if (sidebar) sidebar.style.top = '70px';
@@ -326,6 +340,26 @@ function toggleFeedPause() {
 }
 
 /**
+ * Set application theme
+ */
+function setTheme(themeName) {
+    const body = document.body;
+    
+    // Remove all theme classes
+    body.classList.remove('theme-cyan', 'theme-green', 'theme-purple', 'theme-orange');
+    
+    // Add new theme class (crimson is default, no class needed)
+    if (themeName !== 'crimson') {
+        body.classList.add(`theme-${themeName}`);
+    }
+    
+    // Save preference
+    localStorage.setItem('soc-theme', themeName);
+    
+    console.log(`🎨 Theme changed to: ${themeName}`);
+}
+
+/**
  * Show attack details in modal
  */
 function showAttackDetails(threat) {
@@ -334,51 +368,59 @@ function showAttackDetails(threat) {
 
     if (!modal || !detailsDiv) return;
 
-    // Build details HTML
+    // Get severity class
+    const severityClass = `severity-${threat.severity.toLowerCase()}`;
+    const statusClass = threat.blocked !== false ? 'status-blocked' : 'status-allowed';
+    const statusText = threat.blocked !== false ? '✓ BLOCKED' : '⚠ ALLOWED';
+
+    // Get destination label if available
+    const destLabel = threat.destinationLabel ? ` (${threat.destinationLabel})` : '';
+
+    // Build details HTML with modern styling
     const html = `
         <div class="detail-row">
-            <span class="detail-label">Event Name:</span>
+            <span class="detail-label">Event</span>
             <span class="detail-value">${threat.eventname}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Timestamp:</span>
+            <span class="detail-label">Time</span>
             <span class="detail-value">${threat.timestamp.toLocaleString()}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Source IP:</span>
+            <span class="detail-label">Source IP</span>
             <span class="detail-value">${threat.sourceip}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Source Location:</span>
-            <span class="detail-value">${getLocationString(threat.sourcelat, threat.sourcelon, threat.sourcename)}</span>
+            <span class="detail-label">Source</span>
+            <span class="detail-value">${threat.sourcecountry || 'Unknown'} · ${threat.sourcecity || 'Unknown'}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Destination IP:</span>
-            <span class="detail-value">${threat.destinationip}</span>
+            <span class="detail-label">Destination IP</span>
+            <span class="detail-value">${threat.destinationip}${destLabel}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Destination Location:</span>
-            <span class="detail-value">${getLocationString(threat.destlat, threat.destlon, threat.destinationname)}</span>
+            <span class="detail-label">Destination</span>
+            <span class="detail-value">${threat.destinationcountry || 'Unknown'} · ${threat.destinationcity || 'Unknown'}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Volume:</span>
+            <span class="detail-label">Volume</span>
             <span class="detail-value">${threat.volume}/100</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Severity:</span>
-            <span class="detail-value" style="color: ${getSeverityColor(threat.severity)}">${threat.severity.toUpperCase()}</span>
+            <span class="detail-label">Severity</span>
+            <span class="detail-value ${severityClass}">${threat.severity.toUpperCase()}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Category:</span>
-            <span class="detail-value" style="color: ${getCategoryColor(threat.category)}">${threat.category}</span>
+            <span class="detail-label">Category</span>
+            <span class="detail-value">${threat.category}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Detection Source:</span>
+            <span class="detail-label">Detection</span>
             <span class="detail-value">${threat.detectionsource}</span>
         </div>
         <div class="detail-row">
-            <span class="detail-label">Status:</span>
-            <span class="detail-value" style="color: ${threat.blocked !== false ? '#00ff00' : '#ff4444'}">${threat.blocked !== false ? 'BLOCKED' : 'ALLOWED'}</span>
+            <span class="detail-label">Status</span>
+            <span class="detail-value ${statusClass}">${statusText}</span>
         </div>
     `;
 
@@ -538,4 +580,5 @@ if (typeof window !== 'undefined') {
     window.formatBytesClient = formatBytesClient;
     window.toggleSettingsPanel = toggleSettingsPanel;
     window.updateTopAttackers = updateTopAttackers;
+    window.setTheme = setTheme;
 }

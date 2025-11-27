@@ -80,6 +80,17 @@
                 <option value="live">Live Data</option>
             </select>
         </div>
+
+        <div class="control-group">
+            <label>Theme</label>
+            <select id="theme-selector" class="select">
+                <option value="crimson" selected>🔴 Crimson</option>
+                <option value="cyan">🔵 Cyan</option>
+                <option value="green">🟢 Matrix</option>
+                <option value="purple">🟣 Purple</option>
+                <option value="orange">🟠 Orange</option>
+            </select>
+        </div>
     </div>
 
     <!-- Left Sidebar Attack Feed -->
@@ -178,10 +189,14 @@
     <!-- Attack Detail Modal -->
     <div id="attack-modal" class="modal hidden">
         <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h2>Attack Details</h2>
-            <div id="attack-details">
-                <!-- Details will be populated dynamically -->
+            <div class="modal-header">
+                <h2>⚡ Attack Details</h2>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="attack-details">
+                    <!-- Details will be populated dynamically -->
+                </div>
             </div>
         </div>
     </div>

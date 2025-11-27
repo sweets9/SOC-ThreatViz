@@ -7,24 +7,47 @@
 
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 // Load configuration
 const configPath = path.join(__dirname, '../config.json');
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+let config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
 const csvPath = config.data.csvPath;
 
-// Australian destination sites (major cities - primary targets)
+// Australian destination sites with structured IP ranges
+// Format: 200.200.X.1-5 where X = city index
 const australianSites = [
-    { city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093 },
-    { city: 'Melbourne', country: 'Australia', lat: -37.8136, lon: 144.9631 },
-    { city: 'Brisbane', country: 'Australia', lat: -27.4698, lon: 153.0251 },
-    { city: 'Perth', country: 'Australia', lat: -31.9505, lon: 115.8605 },
-    { city: 'Adelaide', country: 'Australia', lat: -34.9285, lon: 138.6007 },
-    { city: 'Canberra', country: 'Australia', lat: -35.2809, lon: 149.1300 },
-    { city: 'Hobart', country: 'Australia', lat: -42.8821, lon: 147.3272 },
-    { city: 'Darwin', country: 'Australia', lat: -12.4634, lon: 130.8456 }
+    { city: 'Adelaide', country: 'Australia', lat: -34.9285, lon: 138.6007, ipRange: 1 },
+    { city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093, ipRange: 2 },
+    { city: 'Melbourne', country: 'Australia', lat: -37.8136, lon: 144.9631, ipRange: 3 },
+    { city: 'Brisbane', country: 'Australia', lat: -27.4698, lon: 153.0251, ipRange: 4 },
+    { city: 'Perth', country: 'Australia', lat: -31.9505, lon: 115.8605, ipRange: 5 },
+    { city: 'Canberra', country: 'Australia', lat: -35.2809, lon: 149.1300, ipRange: 6 },
+    { city: 'Hobart', country: 'Australia', lat: -42.8821, lon: 147.3272, ipRange: 7 },
+    { city: 'Darwin', country: 'Australia', lat: -12.4634, lon: 130.8456, ipRange: 8 }
 ];
+
+// Server types for each IP within a city range
+const serverTypes = [
+    'Web Server',
+    'Load Balancer',
+    'VPN Gateway',
+    'Mail Server',
+    'Database Server'
+];
+
+// Generate destination labels mapping
+function generateDestinationLabels() {
+    const labels = {};
+    australianSites.forEach(site => {
+        for (let i = 1; i <= 5; i++) {
+            const ip = `200.200.${site.ipRange}.${i}`;
+            labels[ip] = `${site.city} ${serverTypes[i - 1]}`;
+        }
+    });
+    return labels;
+}
 
 // Source locations (global threat origins - all verified city coordinates)
 const threatSources = [
@@ -209,6 +232,18 @@ function randomIP() {
 }
 
 /**
+ * Generate structured destination IP for Australian sites
+ */
+function generateDestinationIP(site) {
+    if (site.ipRange) {
+        // Use structured IP: 200.200.X.1-5
+        const lastOctet = Math.floor(Math.random() * 5) + 1;
+        return `200.200.${site.ipRange}.${lastOctet}`;
+    }
+    return randomIP();
+}
+
+/**
  * Generate random volume (0-100)
  */
 function randomVolume(severity) {
@@ -249,10 +284,14 @@ function generateThreat(hoursAgo = 24) {
     // Select source location (any global location)
     const source = randomElement(threatSources);
 
-    // Select destination (70% Australian sites, 30% other locations)
-    const dest = Math.random() < 0.7 ?
+    // Select destination (80% Australian sites with structured IPs, 20% other locations)
+    const isAustralianDest = Math.random() < 0.8;
+    const dest = isAustralianDest ?
         randomElement(australianSites) :
         randomElement(threatSources);
+
+    // Generate destination IP (structured for Australian, random for others)
+    const destinationip = isAustralianDest ? generateDestinationIP(dest) : randomIP();
 
     // Generate threat
     const threat = {
@@ -262,7 +301,7 @@ function generateThreat(hoursAgo = 24) {
         sourcelocation: `${source.lat},${source.lon}`,
         sourcecity: source.city,
         sourcecountry: source.country,
-        destinationip: randomIP(),
+        destinationip: destinationip,
         destinationlocation: `${dest.lat},${dest.lon}`,
         destinationcity: dest.city,
         destinationcountry: dest.country,
@@ -345,9 +384,44 @@ function generateCSV(count, hoursAgo = 168) {
 }
 
 /**
+ * Ask user a yes/no question
+ */
+function askQuestion(question) {
+    return new Promise((resolve) => {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+        
+        rl.question(question, (answer) => {
+            rl.close();
+            resolve(answer.toLowerCase().startsWith('y'));
+        });
+    });
+}
+
+/**
+ * Update config with new destination labels
+ */
+function updateDestinationLabels() {
+    const newLabels = generateDestinationLabels();
+    config.destinationLabels = newLabels;
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    
+    console.log('');
+    console.log('✓ Updated destination IP labels in config.json:');
+    console.log('  IP Address Range    → Server Type');
+    console.log('  ─────────────────────────────────────────');
+    australianSites.forEach(site => {
+        console.log(`  200.200.${site.ipRange}.1-5      → ${site.city} Servers`);
+    });
+    console.log('');
+}
+
+/**
  * Main function
  */
-function main() {
+async function main() {
     console.log('╔══════════════════════════════════════════════════════════╗');
     console.log('║   SOC Global Threat Visualiser - Data Generator         ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
@@ -357,6 +431,29 @@ function main() {
     const args = process.argv.slice(2);
     const count = args[0] ? parseInt(args[0], 10) : 500;
     const hoursAgo = args[1] ? parseInt(args[1], 10) : 168; // Default: 7 days
+    const skipPrompt = args.includes('--yes') || args.includes('-y');
+
+    // Show IP structure info
+    console.log('Destination IP Structure:');
+    console.log('  200.200.1.1-5 → Adelaide servers');
+    console.log('  200.200.2.1-5 → Sydney servers');
+    console.log('  200.200.3.1-5 → Melbourne servers');
+    console.log('  200.200.4.1-5 → Brisbane servers');
+    console.log('  200.200.5.1-5 → Perth servers');
+    console.log('  200.200.6.1-5 → Canberra servers');
+    console.log('  200.200.7.1-5 → Hobart servers');
+    console.log('  200.200.8.1-5 → Darwin servers');
+    console.log('');
+
+    // Ask about updating IP labels
+    let updateLabels = skipPrompt;
+    if (!skipPrompt) {
+        updateLabels = await askQuestion('Update IP → Server Type mapping in config.json? (y/n): ');
+    }
+
+    if (updateLabels) {
+        updateDestinationLabels();
+    }
 
     console.log(`Generating ${count} sample threat events...`);
     console.log(`Time range: Last ${hoursAgo} hours (${Math.round(hoursAgo / 24)} days)`);
