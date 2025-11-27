@@ -3,9 +3,20 @@
 
 let globe = null;
 let isAutoRotate = false;
+let isAutoFocus = false;
+let autoFocusInterval = null;
+let isFocusMode = false;  // True when showing only critical/high
 let rotateInterval = null;
 let currentArcs = [];
 let hitRingsQueue = [];  // Queue for hit animations
+
+// Auto Focus configuration
+const AUTO_FOCUS_CONFIG = {
+    focusDuration: 15000,  // Show only critical/high for 15 seconds
+    normalDuration: 5000,  // Show all for 5 seconds
+    focusArcMultiplier: 2.5,  // Make focused arcs larger
+    fadeOpacity: 0.15  // Opacity for faded low/medium arcs
+};
 
 // Map configuration
 const MAP_CONFIG = {
@@ -93,7 +104,14 @@ function initMap() {
                 .showAtmosphere(true)
 
                 // Arc configuration with dash animation
-                .arcLabel(d => d.threat.eventname)
+                .arcLabel(d => {
+                    // Show more info during focus mode for critical/high
+                    const severity = (d.threat.severity || 'medium').toLowerCase();
+                    if (isFocusMode && (severity === 'critical' || severity === 'high')) {
+                        return `${d.threat.eventname}\n${d.threat.sourcename || 'Unknown'} → ${d.threat.destinationname || 'Unknown'}`;
+                    }
+                    return d.threat.eventname;
+                })
                 .arcStartLat(d => d.threat.sourcelat)
                 .arcStartLng(d => d.threat.sourcelon)
                 .arcEndLat(d => d.threat.destlat)
@@ -113,23 +131,52 @@ function initMap() {
                     };
                     const color = severityColors[severity] || '#ffaa00';
                     
-                    // Opacity based on severity for better visual hierarchy
-                    const alphaMap = {
+                    // Opacity based on severity and focus mode
+                    let alphaMap = {
                         'critical': 0.9,
                         'high': 0.7,
                         'medium': 0.5,
                         'low': 0.4
                     };
+                    
+                    // In focus mode, fade out low/medium and boost critical/high
+                    if (isFocusMode) {
+                        if (severity === 'critical' || severity === 'high') {
+                            alphaMap = { 'critical': 1.0, 'high': 0.9, 'medium': 0.5, 'low': 0.4 };
+                        } else {
+                            // Fade out low and medium
+                            return [`rgba(${hexToRgb(color)}, ${AUTO_FOCUS_CONFIG.fadeOpacity})`, `rgba(${hexToRgb(color)}, ${AUTO_FOCUS_CONFIG.fadeOpacity * 0.5})`];
+                        }
+                    }
+                    
                     const alpha = alphaMap[severity] || 0.5;
                     return [`rgba(${hexToRgb(color)}, ${alpha})`, `rgba(${hexToRgb(color)}, ${alpha * 0.7})`];
                 })
-                .arcStroke(d => calculateArcStroke(d.threat))
+                .arcStroke(d => {
+                    const baseStroke = calculateArcStroke(d.threat);
+                    const severity = (d.threat.severity || 'medium').toLowerCase();
+                    
+                    // In focus mode, make critical/high arcs larger
+                    if (isFocusMode && (severity === 'critical' || severity === 'high')) {
+                        return baseStroke * AUTO_FOCUS_CONFIG.focusArcMultiplier;
+                    }
+                    // In focus mode, make low/medium arcs smaller
+                    if (isFocusMode && (severity === 'low' || severity === 'medium')) {
+                        return baseStroke * 0.3;
+                    }
+                    return baseStroke;
+                })
                 .arcAltitude(d => {
                     // Height based on volume (higher volume = higher arc)
-                    // Also ensure arcs don't go too low (to avoid passing through Antarctica)
                     const volume = d.threat.volume || 50;
-                    // Minimum altitude 0.15 to keep arcs above Antarctica region
-                    return 0.15 + (volume / 100) * 0.25;
+                    const severity = (d.threat.severity || 'medium').toLowerCase();
+                    let baseAltitude = 0.15 + (volume / 100) * 0.25;
+                    
+                    // In focus mode, raise critical/high arcs higher
+                    if (isFocusMode && (severity === 'critical' || severity === 'high')) {
+                        baseAltitude *= 1.5;
+                    }
+                    return baseAltitude;
                 })
                 .arcAltitudeAutoScale(0.4)
                 .arcsTransitionDuration(1000)  // 1 second smooth fade transition
@@ -401,6 +448,136 @@ function stopAutoRotation() {
 }
 
 /**
+ * Toggle auto focus mode
+ * Cycles between showing only critical/high (15s) and all attacks (5s)
+ */
+function toggleAutoFocus() {
+    isAutoFocus = !isAutoFocus;
+
+    if (isAutoFocus) {
+        startAutoFocus();
+    } else {
+        stopAutoFocus();
+    }
+
+    updateFocusButton();
+}
+
+/**
+ * Start auto focus cycling
+ */
+function startAutoFocus() {
+    console.log('🎯 Auto Focus enabled - cycling between focus and normal mode');
+    
+    // Start in focus mode
+    setFocusMode(true);
+
+    // Set up the cycling
+    runFocusCycle();
+}
+
+/**
+ * Run the focus cycle
+ */
+function runFocusCycle() {
+    if (!isAutoFocus) return;
+
+    if (isFocusMode) {
+        // Currently in focus mode, wait 15 seconds then switch to normal
+        autoFocusInterval = setTimeout(() => {
+            setFocusMode(false);
+            runFocusCycle();
+        }, AUTO_FOCUS_CONFIG.focusDuration);
+    } else {
+        // Currently in normal mode, wait 5 seconds then switch to focus
+        autoFocusInterval = setTimeout(() => {
+            setFocusMode(true);
+            runFocusCycle();
+        }, AUTO_FOCUS_CONFIG.normalDuration);
+    }
+}
+
+/**
+ * Set focus mode on or off
+ */
+function setFocusMode(focused) {
+    isFocusMode = focused;
+    
+    if (focused) {
+        console.log('🔴 Focus Mode: Highlighting CRITICAL and HIGH threats');
+    } else {
+        console.log('🟢 Normal Mode: Showing all threats');
+    }
+
+    // Re-render arcs with new styling
+    if (globe && currentArcs.length > 0) {
+        // Force re-render by setting data again
+        globe.arcsData([]);
+        setTimeout(() => {
+            globe.arcsData(currentArcs);
+        }, 50);
+    }
+
+    // Update feed styling
+    updateFeedFocusMode(focused);
+}
+
+/**
+ * Update feed items to match focus mode
+ */
+function updateFeedFocusMode(focused) {
+    const feedItems = document.querySelectorAll('.attack-item');
+    feedItems.forEach(item => {
+        if (focused) {
+            if (item.classList.contains('critical') || item.classList.contains('high')) {
+                item.classList.add('focused');
+                item.classList.remove('faded');
+            } else {
+                item.classList.add('faded');
+                item.classList.remove('focused');
+            }
+        } else {
+            item.classList.remove('focused', 'faded');
+        }
+    });
+}
+
+/**
+ * Stop auto focus cycling
+ */
+function stopAutoFocus() {
+    console.log('🎯 Auto Focus disabled');
+    
+    if (autoFocusInterval) {
+        clearTimeout(autoFocusInterval);
+        autoFocusInterval = null;
+    }
+    
+    // Reset to normal mode
+    setFocusMode(false);
+}
+
+/**
+ * Update focus button text
+ */
+function updateFocusButton() {
+    const focusText = document.getElementById('focus-text');
+    const focusBtn = document.getElementById('toggle-focus');
+
+    if (focusText) {
+        focusText.textContent = isAutoFocus ? 'Disable' : 'Enable';
+    }
+    
+    if (focusBtn) {
+        if (isAutoFocus) {
+            focusBtn.classList.add('active');
+        } else {
+            focusBtn.classList.remove('active');
+        }
+    }
+}
+
+/**
  * Highlight a new attack with animation
  */
 function highlightNewAttack(threat) {
@@ -456,8 +633,11 @@ if (typeof window !== 'undefined') {
     window.initMap = initMap;
     window.updateMapData = updateMapData;
     window.toggleAutoRotate = toggleAutoRotate;
+    window.toggleAutoFocus = toggleAutoFocus;
     window.highlightNewAttack = highlightNewAttack;
     window.MAP_CONFIG = MAP_CONFIG;
+    window.AUTO_FOCUS_CONFIG = AUTO_FOCUS_CONFIG;
     window.calculateArcStroke = calculateArcStroke;
     window.updateCategoryCounts = updateCategoryCounts;
+    window.isFocusMode = isFocusMode;
 }

@@ -13,6 +13,9 @@ let activeFilters = {
     locations: new Set()
 };
 
+// Destination IP labels dictionary (loaded from config)
+let destinationLabels = {};
+
 // Timeframe definitions (in milliseconds)
 const TIMEFRAMES = {
     '1h': 60 * 60 * 1000,
@@ -24,6 +27,36 @@ const TIMEFRAMES = {
 const DATA_FETCH_INTERVAL = 60 * 1000;
 
 /**
+ * Load destination labels from config
+ */
+async function loadDestinationLabels() {
+    try {
+        const response = await fetch('/api/info');
+        if (response.ok) {
+            const data = await response.json();
+            // Try to fetch config directly for destination labels
+            const configResponse = await fetch('/config.json');
+            if (configResponse.ok) {
+                const config = await configResponse.json();
+                if (config.destinationLabels) {
+                    destinationLabels = config.destinationLabels;
+                    console.log(`📋 Loaded ${Object.keys(destinationLabels).length} destination IP labels`);
+                }
+            }
+        }
+    } catch (error) {
+        console.log('ℹ️ Using default destination labels (config not available)');
+    }
+}
+
+/**
+ * Get friendly label for destination IP
+ */
+function getDestinationLabel(ip) {
+    return destinationLabels[ip] || null;
+}
+
+/**
  * Fetch threat data from the backend API
  * Uses smooth transitions - no blinking on refresh
  */
@@ -31,8 +64,10 @@ async function fetchThreatData() {
     if (isDataLoading) return;
 
     isDataLoading = true;
+    const fetchStartTime = Date.now();
 
     try {
+        console.log(`📡 Fetching ${dataMode} data (timeframe: ${currentTimeframe})...`);
         const response = await fetch(`/api/threats?timeframe=${currentTimeframe}&mode=${dataMode}`);
 
         if (!response.ok) {
@@ -40,6 +75,7 @@ async function fetchThreatData() {
         }
 
         const data = await response.json();
+        const fetchDuration = Date.now() - fetchStartTime;
 
         if (data.threats && Array.isArray(data.threats)) {
             // Check if we got any data
@@ -50,6 +86,7 @@ async function fetchThreatData() {
                     hideLoading();
                     isInitialLoad = false;
                 }
+                console.log(`⚠️ ${dataMode.toUpperCase()} feed: 0 items (${fetchDuration}ms)`);
                 return;
             }
 
@@ -64,11 +101,15 @@ async function fetchThreatData() {
                     ? `${threat.destinationcity}, ${threat.destinationcountry}`
                     : 'Unknown Location';
 
+                // Get destination label from dictionary if available
+                const destinationLabel = getDestinationLabel(threat.destinationip);
+
                 return {
                     ...threat,
                     timestamp: new Date(threat.timestamp),
                     sourcename,
                     destinationname,
+                    destinationLabel,
                     sourcelat: parseFloat(threat.sourcelocation.split(',')[0]),
                     sourcelon: parseFloat(threat.sourcelocation.split(',')[1]),
                     destlat: parseFloat(threat.destinationlocation.split(',')[0]),
@@ -85,10 +126,19 @@ async function fetchThreatData() {
                 isInitialLoad = false;
             }
 
-            console.log(`✓ Loaded ${threatData.length} threats, ${filteredData.length} in timeframe`);
+            // Enhanced logging with feed details
+            const severityCounts = {
+                critical: newThreatData.filter(t => t.severity.toLowerCase() === 'critical').length,
+                high: newThreatData.filter(t => t.severity.toLowerCase() === 'high').length,
+                medium: newThreatData.filter(t => t.severity.toLowerCase() === 'medium').length,
+                low: newThreatData.filter(t => t.severity.toLowerCase() === 'low').length
+            };
+            console.log(`✅ ${dataMode.toUpperCase()} feed: ${threatData.length} items loaded (${fetchDuration}ms)`);
+            console.log(`   📊 Severity: Critical=${severityCounts.critical}, High=${severityCounts.high}, Medium=${severityCounts.medium}, Low=${severityCounts.low}`);
+            console.log(`   🎯 Filtered: ${filteredData.length} items displayed`);
         }
     } catch (error) {
-        console.error('✗ Error fetching threat data:', error);
+        console.error(`❌ ${dataMode.toUpperCase()} feed: Error - ${error.message}`);
         if (isInitialLoad || dataMode === 'live') {
             showDataError(`Failed to load ${dataMode} data: ${error.message}`);
             hideLoading();
@@ -402,4 +452,7 @@ if (typeof window !== 'undefined') {
     window.toggleFilter = toggleFilter;
     window.isFilterActive = isFilterActive;
     window.activeFilters = activeFilters;
+    window.loadDestinationLabels = loadDestinationLabels;
+    window.getDestinationLabel = getDestinationLabel;
+    window.destinationLabels = destinationLabels;
 }

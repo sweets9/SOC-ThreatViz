@@ -36,6 +36,16 @@ function setupControlListeners() {
         });
     }
 
+    // Auto-focus toggle
+    const toggleFocusBtn = document.getElementById('toggle-focus');
+    if (toggleFocusBtn) {
+        toggleFocusBtn.addEventListener('click', () => {
+            if (typeof toggleAutoFocus === 'function') {
+                toggleAutoFocus();
+            }
+        });
+    }
+
     // Timeframe buttons
     const timeframeBtns = document.querySelectorAll('.btn-timeframe');
     timeframeBtns.forEach(btn => {
@@ -268,6 +278,12 @@ function formatBytesClient(bytes) {
 function createAttackItemHTML(threat, index) {
     const severityClass = threat.severity.toLowerCase();
     const timeAgo = formatTimestamp(threat.timestamp);
+    
+    // Get source country from sourcename or sourcecountry
+    const sourceCountry = threat.sourcecountry || (threat.sourcename ? threat.sourcename.split(', ').pop() : 'Unknown');
+    
+    // Get destination label if available
+    const destLabel = threat.destinationLabel ? `<span class="dest-label">${threat.destinationLabel}</span>` : '';
 
     return `
         <div class="attack-item ${severityClass}" data-index="${index}">
@@ -276,9 +292,9 @@ function createAttackItemHTML(threat, index) {
                 <span class="attack-severity ${severityClass}">${threat.severity}</span>
             </div>
             <div class="attack-name">${threat.eventname}</div>
+            <div class="attack-source">🌍 ${sourceCountry}</div>
             <div class="attack-details">
-                From: ${threat.sourceip} → ${threat.destinationip}<br>
-                Source: ${threat.detectionsource}
+                ${threat.sourceip} → ${threat.destinationip}${destLabel}
             </div>
             <div class="attack-category">📁 ${threat.category}</div>
         </div>

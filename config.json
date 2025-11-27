@@ -28,5 +28,14 @@
     "centerLon": 133.0,
     "autoRotate": false,
     "rotateInterval": 60000
+  },
+  "destinationLabels": {
+    "202.20.1.1": "Nginx Load Balancer",
+    "202.20.1.2": "VPN Gateway",
+    "202.20.1.3": "Web Server",
+    "202.20.1.4": "Database Server",
+    "202.20.1.5": "Mail Server",
+    "10.0.0.1": "Internal Gateway",
+    "192.168.1.1": "Local Router"
   }
 }

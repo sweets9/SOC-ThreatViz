@@ -36,26 +36,20 @@ function print(text, color = 'reset') {
  */
 function printBanner() {
     console.clear();
-    print('╔══════════════════════════════════════════════════════════╗', 'cyan');
-    print(`║   SOC Global Threat Visualiser - CLI Menu v${APP_VERSION}        ║`, 'cyan');
-    print('╚══════════════════════════════════════════════════════════╝', 'cyan');
-    console.log('');
+    print('╔═════════════════════════════════════════════════╗', 'cyan');
+    print(`║  SOC Threat Visualiser CLI v${APP_VERSION}             ║`, 'cyan');
+    print('╠═════════════════════════════════════════════════╣', 'cyan');
 }
 
 /**
  * Print the main menu
  */
 function printMenu() {
-    print('Options:', 'bright');
-    print('  1. Start Server           - Run the backend server', 'green');
-    print('  2. Generate Sample Data   - Create test threat data', 'green');
-    print('  3. Start Dev Server       - Server with auto-reload', 'green');
-    print('  4. View Statistics        - Show threat data stats', 'green');
-    print('  5. Clear Live Data        - Remove live threat data', 'yellow');
-    print('  6. Show Configuration     - Display current config', 'green');
-    print('  7. Health Check           - Check server status', 'green');
-    print('  8. Exit                   - Quit the menu', 'red');
-    print('═══════════════════════════════════════════════════════════', 'cyan');
+    print('║ 1. Start Server      5. Clear Live Data        ║', 'green');
+    print('║ 2. Generate Data     6. Show Config            ║', 'green');
+    print('║ 3. Dev Server        7. Health Check           ║', 'green');
+    print('║ 4. View Stats        8. Exit                   ║', 'green');
+    print('╚═════════════════════════════════════════════════╝', 'cyan');
 }
 
 /**

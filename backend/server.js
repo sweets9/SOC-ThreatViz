@@ -125,6 +125,13 @@ app.use('/api', apiLimiter, apiRoutes);
 // Apply stricter rate limiting to webhook endpoints
 app.use('/api/webhook', webhookLimiter);
 
+// Serve config.json for frontend (only destinationLabels for security)
+app.get('/config.json', (req, res) => {
+    res.json({
+        destinationLabels: config.destinationLabels || {}
+    });
+});
+
 // Root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
