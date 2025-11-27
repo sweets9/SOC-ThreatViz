@@ -26,16 +26,6 @@ function setupControlListeners() {
         });
     }
 
-    // View mode toggle
-    const toggleViewBtn = document.getElementById('toggle-view');
-    if (toggleViewBtn) {
-        toggleViewBtn.addEventListener('click', () => {
-            if (typeof toggleView === 'function') {
-                toggleView();
-            }
-        });
-    }
-
     // Auto-rotate toggle
     const toggleRotateBtn = document.getElementById('toggle-rotate');
     if (toggleRotateBtn) {
@@ -167,13 +157,11 @@ function toggleSettingsPanel() {
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
-            case ' ':
-                e.preventDefault();
-                toggleView();
-                break;
             case 'r':
             case 'R':
-                toggleAutoRotate();
+                if (typeof toggleAutoRotate === 'function') {
+                    toggleAutoRotate();
+                }
                 break;
             case 's':
             case 'S':

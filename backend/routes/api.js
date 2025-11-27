@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Application version
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.3.0';
 
 let config = {};
 

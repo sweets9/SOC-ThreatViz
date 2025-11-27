@@ -1,8 +1,7 @@
 // Map visualization for Live Global Cyber Threat Map
-// Using Globe.GL with proper arc animations
+// Using Globe.GL with 3D globe visualization
 
 let globe = null;
-let is3DMode = true;  // Start in 3D mode (globe view)
 let isAutoRotate = false;
 let rotateInterval = null;
 let currentArcs = [];
@@ -174,10 +173,7 @@ function initMap() {
             globe.controls().autoRotate = false;
             globe.controls().autoRotateSpeed = MAP_CONFIG.rotationSpeed;
 
-            // Update button to reflect initial state (3D mode)
-            updateViewButton();
-
-            console.log('✓ Map initialized successfully with Globe.GL');
+            console.log('✓ Map initialized successfully with Globe.GL (3D Globe mode)');
             resolve();
         } catch (error) {
             console.error('✗ Error initializing map:', error);
@@ -357,38 +353,6 @@ function updateCategoryCounts(threats) {
 }
 
 /**
- * Toggle between 3D globe and flat map view
- */
-function toggleView() {
-    is3DMode = !is3DMode;
-
-    if (is3DMode) {
-        // Switch to 3D globe view
-        globe.globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
-            .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
-            .showAtmosphere(true);
-
-        globe.pointOfView({
-            lat: MAP_CONFIG.centerLat,
-            lng: MAP_CONFIG.centerLon,
-            altitude: 2.5
-        }, 1500);
-    } else {
-        // Switch to Flat Map view
-        // We disable atmosphere and zoom very close to simulate a flat projection
-        globe.showAtmosphere(false);
-
-        globe.pointOfView({
-            lat: MAP_CONFIG.centerLat,
-            lng: MAP_CONFIG.centerLon,
-            altitude: 0.01 // Very close to surface to simulate flat map
-        }, 1500);
-    }
-
-    updateViewButton();
-}
-
-/**
  * Toggle auto-rotation mode
  */
 function toggleAutoRotate() {
@@ -456,26 +420,6 @@ function highlightNewAttack(threat) {
 }
 
 /**
- * Update view toggle button text
- */
-function updateViewButton() {
-    const viewIcon = document.getElementById('view-icon');
-    const viewText = document.getElementById('view-text');
-
-    if (viewIcon && viewText) {
-        if (is3DMode) {
-            // Currently in 3D mode, button shows option to switch to flat map
-            viewIcon.textContent = '🗺️';
-            viewText.textContent = 'Flat Map';
-        } else {
-            // Currently in flat map mode, button shows option to switch to 3D
-            viewIcon.textContent = '🌍';
-            viewText.textContent = '3D Globe';
-        }
-    }
-}
-
-/**
  * Update rotate button text
  */
 function updateRotateButton() {
@@ -503,7 +447,6 @@ window.addEventListener('resize', () => {
 if (typeof window !== 'undefined') {
     window.initMap = initMap;
     window.updateMapData = updateMapData;
-    window.toggleView = toggleView;
     window.toggleAutoRotate = toggleAutoRotate;
     window.highlightNewAttack = highlightNewAttack;
     window.MAP_CONFIG = MAP_CONFIG;
