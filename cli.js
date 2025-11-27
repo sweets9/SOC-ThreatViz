@@ -46,32 +46,15 @@ function printBanner() {
  * Print the main menu
  */
 function printMenu() {
-    print('Available Options:', 'bright');
-    console.log('');
-    print('  1. Start Server', 'green');
-    print('     Start the backend server and serve the frontend');
-    console.log('');
-    print('  2. Generate Sample Data', 'green');
-    print('     Generate sample threat data for testing');
-    console.log('');
-    print('  3. Start Development Server', 'green');
-    print('     Start server with auto-reload (nodemon)');
-    console.log('');
-    print('  4. View Statistics', 'green');
-    print('     Display current threat data statistics');
-    console.log('');
-    print('  5. Clear Live Data', 'yellow');
-    print('     Clear all live threat data (keeps test data)');
-    console.log('');
-    print('  6. Show Configuration', 'green');
-    print('     Display current configuration');
-    console.log('');
-    print('  7. Health Check', 'green');
-    print('     Check if server is running');
-    console.log('');
-    print('  8. Exit', 'red');
-    print('     Exit the CLI menu');
-    console.log('');
+    print('Options:', 'bright');
+    print('  1. Start Server           - Run the backend server', 'green');
+    print('  2. Generate Sample Data   - Create test threat data', 'green');
+    print('  3. Start Dev Server       - Server with auto-reload', 'green');
+    print('  4. View Statistics        - Show threat data stats', 'green');
+    print('  5. Clear Live Data        - Remove live threat data', 'yellow');
+    print('  6. Show Configuration     - Display current config', 'green');
+    print('  7. Health Check           - Check server status', 'green');
+    print('  8. Exit                   - Quit the menu', 'red');
     print('═══════════════════════════════════════════════════════════', 'cyan');
 }
 

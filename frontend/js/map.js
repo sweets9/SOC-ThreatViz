@@ -103,17 +103,25 @@ function initMap() {
                 .arcDashInitialGap(() => Math.random())  // Random start position
                 .arcDashAnimateTime(() => MAP_CONFIG.arcDuration)  // Animation speed
                 .arcColor(d => {
-                    const color = getCategoryColor(d.threat.category);
-                    const severity = d.threat.severity.toLowerCase();
+                    // Use severity-based coloring for clearer threat visualization
+                    const severity = (d.threat.severity || 'medium').toLowerCase();
+                    const severityColors = {
+                        'critical': '#ff0000',  // Bright red
+                        'high': '#ff6600',      // Orange
+                        'medium': '#ffaa00',    // Yellow-orange
+                        'low': '#888888'        // Gray
+                    };
+                    const color = severityColors[severity] || '#ffaa00';
+                    
                     // Opacity based on severity for better visual hierarchy
                     const alphaMap = {
-                        'critical': 0.7,
-                        'high': 0.5,
-                        'medium': 0.35,
-                        'low': 0.35
+                        'critical': 0.9,
+                        'high': 0.7,
+                        'medium': 0.5,
+                        'low': 0.4
                     };
-                    const alpha = alphaMap[severity] || 0.35;
-                    return [`rgba(${hexToRgb(color)}, ${alpha})`, `rgba(${hexToRgb(color)}, ${alpha * 0.6})`];
+                    const alpha = alphaMap[severity] || 0.5;
+                    return [`rgba(${hexToRgb(color)}, ${alpha})`, `rgba(${hexToRgb(color)}, ${alpha * 0.7})`];
                 })
                 .arcStroke(d => calculateArcStroke(d.threat))
                 .arcAltitude(d => {

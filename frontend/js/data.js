@@ -164,10 +164,13 @@ function toggleFilter(type, value) {
     const set = activeFilters[type === 'location' ? 'locations' : (type === 'severity' ? 'severities' : 'categories')];
     if (!set) return;
 
-    if (set.has(value)) {
-        set.delete(value);
+    // Normalize severity values to lowercase for consistent comparison
+    const normalizedValue = type === 'severity' ? value.toLowerCase() : value;
+
+    if (set.has(normalizedValue)) {
+        set.delete(normalizedValue);
     } else {
-        set.add(value);
+        set.add(normalizedValue);
     }
 
     applyFilters();
@@ -178,7 +181,9 @@ function toggleFilter(type, value) {
  */
 function isFilterActive(type, value) {
     const set = activeFilters[type === 'location' ? 'locations' : (type === 'severity' ? 'severities' : 'categories')];
-    return set && set.has(value);
+    // Normalize severity values to lowercase for consistent comparison
+    const normalizedValue = type === 'severity' ? value.toLowerCase() : value;
+    return set && set.has(normalizedValue);
 }
 
 /**
