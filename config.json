@@ -29,6 +29,10 @@
     "autoRotate": false,
     "rotateInterval": 60000
   },
+  "branding": {
+    "icon": "",
+    "companyName": ""
+  },
   "destinationLabels": {
     "200.200.1.1": "Adelaide Web Server",
     "200.200.1.2": "Adelaide Load Balancer",

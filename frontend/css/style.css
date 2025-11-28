@@ -98,6 +98,22 @@ body {
     align-items: center;
 }
 
+/* Branding Icon */
+.branding-icon {
+    height: 36px;
+    width: auto;
+    margin-right: 10px;
+    border-radius: 4px;
+}
+
+.branding-icon.hidden {
+    display: none;
+}
+
+#app-icon.hidden {
+    display: none;
+}
+
 .header h1 {
     font-size: 24px;
     font-weight: 600;
@@ -623,8 +639,8 @@ body {
 }
 
 .attack-severity.medium {
-    background: #cc8844;
-    color: #fff;
+    background: #997755;  /* Darker, less bright for feed */
+    color: #ddd;
 }
 
 .attack-severity.low {
@@ -632,12 +648,31 @@ body {
     color: #ddd;
 }
 
+/* Blocked/Allowed status in feed */
+.attack-status {
+    font-size: 12px;
+    margin-right: 5px;
+}
+
+.attack-status.status-blocked-feed {
+    opacity: 0.5;
+}
+
+.attack-status.status-allowed-feed {
+    animation: allowedPulse 2s infinite;
+}
+
+@keyframes allowedPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
 .attack-name {
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 4px;
-    color: #00ffff;
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    color: var(--theme-text, #ff6b6b);
+    text-shadow: 0 0 8px var(--theme-glow, rgba(220, 20, 60, 0.3));
 }
 
 .attack-source {
@@ -656,13 +691,13 @@ body {
 
 .dest-label {
     display: inline-block;
-    background: rgba(0, 255, 255, 0.15);
-    color: #00ddff;
+    background: rgba(var(--theme-primary-rgb, 220, 20, 60), 0.15);
+    color: var(--theme-text, #ff6b6b);
     padding: 1px 6px;
     border-radius: 3px;
     margin-left: 5px;
     font-size: 9px;
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid var(--theme-border, rgba(220, 20, 60, 0.3));
 }
 
 .attack-category {
@@ -1043,8 +1078,8 @@ body {
     border: 1px solid var(--theme-border);
     border-radius: 12px;
     padding: 20px;
-    min-width: 350px;
-    max-width: 500px;
+    min-width: 600px;
+    max-width: 850px;
     max-height: 70vh;
     overflow-y: auto;
     z-index: 10001;
@@ -1157,6 +1192,118 @@ body {
     color: #888;
     font-size: 10px;
     margin-top: 4px;
+}
+
+/* City Attack Table Styles */
+.city-attack-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.city-attack-table thead th {
+    background: rgba(var(--theme-primary-rgb), 0.2);
+    color: var(--theme-primary);
+    padding: 8px 6px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--theme-border);
+}
+
+.city-attack-row {
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+}
+
+.city-attack-row:hover {
+    background: rgba(var(--theme-primary-rgb), 0.1);
+}
+
+.city-attack-row td {
+    padding: 8px 6px;
+    vertical-align: middle;
+}
+
+.city-attack-row.critical {
+    border-left: 3px solid #ff0000;
+}
+
+.city-attack-row.high {
+    border-left: 3px solid #ff6600;
+}
+
+.city-attack-row.medium {
+    border-left: 3px solid #cc8844;
+}
+
+.city-attack-row.low {
+    border-left: 3px solid #666;
+}
+
+.city-attack-table .col-time {
+    color: #888;
+    white-space: nowrap;
+}
+
+.city-attack-table .col-event {
+    color: var(--theme-text);
+    font-weight: 500;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.city-attack-table .col-ip {
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #aaa;
+    font-size: 10px;
+}
+
+.city-attack-table .col-category {
+    color: #888;
+    font-size: 10px;
+}
+
+.city-attack-table .col-status.blocked {
+    opacity: 0.5;
+}
+
+.city-attack-table .col-status.allowed {
+    animation: allowedPulse 2s infinite;
+}
+
+.city-attack-table .severity-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.city-attack-table .severity-badge.critical {
+    background: #ff0000;
+    color: #fff;
+}
+
+.city-attack-table .severity-badge.high {
+    background: #ff6600;
+    color: #fff;
+}
+
+.city-attack-table .severity-badge.medium {
+    background: #997755;
+    color: #ddd;
+}
+
+.city-attack-table .severity-badge.low {
+    background: #555;
+    color: #ddd;
 }
 
 /* Custom Cesium Widget Styles */

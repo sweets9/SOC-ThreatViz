@@ -41,21 +41,21 @@ const MAP_CONFIG = {
 /**
  * Calculate arc stroke width based on volume AND severity
  * Higher volume + higher severity = thicker lines
- * Made narrower minimum width for better visual variety
+ * Critical and High have significantly more emphasis
  */
 function calculateArcStroke(threat) {
     const volume = threat.volume || 50;
     const severity = (threat.severity || 'medium').toLowerCase();
 
-    // Base width from volume (0.1 to 0.6) - narrower range
-    let baseWidth = 0.1 + (volume / 100) * 0.5;
+    // Base width from volume (0.2 to 0.8) - wider range
+    let baseWidth = 0.2 + (volume / 100) * 0.6;
 
-    // Severity multiplier
+    // Severity multiplier - more emphasis on critical/high
     const severityMultipliers = {
-        'low': 0.6,
-        'medium': 1.0,
-        'high': 1.4,
-        'critical': 1.8
+        'low': 0.5,
+        'medium': 0.8,
+        'high': 2.0,      // Increased from 1.4
+        'critical': 3.0   // Increased from 1.8
     };
 
     const multiplier = severityMultipliers[severity] || 1.0;
@@ -187,8 +187,18 @@ function initMap() {
                 .ringPropagationSpeed(2)
                 .ringRepeatPeriod(800)
 
-                // Point configuration (impact points)
-                .pointColor(d => d.type === 'destination' ? '#ff4444' : getCategoryColor(d.threat ? d.threat.category : 'default'))
+                // Point configuration (impact points) - use severity colors only, no cyan
+                .pointColor(d => {
+                    if (!d.threat) return '#ff4444';
+                    const severity = (d.threat.severity || 'medium').toLowerCase();
+                    const colors = {
+                        'critical': '#ff0000',
+                        'high': '#ff6600',
+                        'medium': '#cc8844',
+                        'low': '#666666'
+                    };
+                    return colors[severity] || '#ff4444';
+                })
                 .pointAltitude(0.01)
                 .pointRadius(d => d.type === 'destination' ? 0.4 : 0.2)
                 .pointsMerge(true)
@@ -200,7 +210,7 @@ function initMap() {
                 .labelText(d => d.name)
                 .labelSize(0.8)  // Smaller labels
                 .labelDotRadius(0.3)
-                .labelColor(() => '#00ffff')
+                .labelColor(() => 'var(--theme-primary, #dc143c)')  // Use theme color instead of cyan
                 .labelResolution(2)
                 .labelAltitude(0.01)
 
@@ -213,6 +223,15 @@ function initMap() {
                 .onPointClick((point) => {
                     if (point && point.threat && typeof showAttackDetails === 'function') {
                         showAttackDetails(point.threat);
+                    }
+                })
+                .onLabelClick((label) => {
+                    // Make cities clickable - show attacks to that city
+                    if (label && label.name) {
+                        const cityAttacks = getAttacksByCity(label.name);
+                        if (cityAttacks.length > 0) {
+                            showCityAttacks(label.name, cityAttacks, 'destination');
+                        }
                     }
                 });
 
@@ -344,7 +363,7 @@ function updateMapLabels(threats) {
     // I'll merge them but maybe prioritize source cities.
 
     const labels = [
-        ...AUSTRALIAN_CITIES.map(c => ({ ...c, color: '#00ffff', size: 0.8 })), // Keep AU cities blue
+        ...AUSTRALIAN_CITIES.map(c => ({ ...c, color: '#dc143c', size: 0.8 })), // Theme color for AU cities
         ...topLocations.map(l => ({
             name: l.name,
             lat: l.lat,

@@ -7,6 +7,7 @@ let dataMode = 'test';  // Default to test mode
 let isDataLoading = false;
 let dataFetchInterval = null;
 let isInitialLoad = true;  // Track if this is the first load
+let lastDataFetchTime = null;  // Track when data was last fetched successfully
 let activeFilters = {
     categories: new Set(),
     severities: new Set(),
@@ -78,6 +79,10 @@ async function fetchThreatData() {
         const fetchDuration = Date.now() - fetchStartTime;
 
         if (data.threats && Array.isArray(data.threats)) {
+            // Update last fetch time
+            lastDataFetchTime = Date.now();
+            updateDataModeIndicator();
+            
             // Check if we got any data
             if (data.threats.length === 0 && dataMode === 'live') {
                 // Show a message for empty live data
@@ -328,6 +333,8 @@ function setTimeframe(timeframe) {
  */
 function setDataMode(mode) {
     dataMode = mode;
+    lastDataFetchTime = null;  // Reset fetch time when changing modes
+    updateDataModeIndicator();
     showLoading();
     fetchThreatData();
 }
@@ -380,7 +387,7 @@ function hideLoading() {
 }
 
 /**
- * Format timestamp for display
+ * Format timestamp for display - shows hours AND minutes
  */
 function formatTimestamp(date) {
     const now = new Date();
@@ -393,9 +400,17 @@ function formatTimestamp(date) {
         return `${minutes}m ago`;
     } else if (diff < 24 * 60 * 60 * 1000) {
         const hours = Math.floor(diff / (60 * 60 * 1000));
+        const remainingMinutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+        if (remainingMinutes > 0) {
+            return `${hours}h ${remainingMinutes}m ago`;
+        }
         return `${hours}h ago`;
     } else {
         const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+        const remainingHours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+        if (remainingHours > 0) {
+            return `${days}d ${remainingHours}h ago`;
+        }
         return `${days}d ago`;
     }
 }
@@ -433,6 +448,65 @@ function simulateRealTimeUpdates() {
     }
 }
 
+/**
+ * Update the data mode indicator in the header
+ * Shows Test (green) or Live with freshness indicator (green/amber/red)
+ */
+function updateDataModeIndicator() {
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.querySelector('.status-text');
+    const statusIndicator = document.querySelector('.status-indicator');
+    
+    if (!statusDot || !statusText || !statusIndicator) return;
+    
+    if (dataMode === 'test') {
+        // Test mode - always green
+        statusDot.style.background = '#00ff00';
+        statusText.textContent = 'Test';
+        statusText.style.color = '#00ff00';
+        statusIndicator.style.background = 'rgba(0, 255, 0, 0.1)';
+        statusIndicator.style.borderColor = 'rgba(0, 255, 0, 0.3)';
+    } else {
+        // Live mode - check data freshness
+        statusText.textContent = 'Live';
+        
+        if (!lastDataFetchTime) {
+            // No data yet - red
+            statusDot.style.background = '#ff4444';
+            statusText.style.color = '#ff4444';
+            statusIndicator.style.background = 'rgba(255, 68, 68, 0.1)';
+            statusIndicator.style.borderColor = 'rgba(255, 68, 68, 0.3)';
+        } else {
+            const timeSinceLastFetch = Date.now() - lastDataFetchTime;
+            const threeMinutes = 3 * 60 * 1000;
+            const twoMinutes = 2 * 60 * 1000;
+            
+            if (timeSinceLastFetch > threeMinutes) {
+                // Over 3 minutes - red
+                statusDot.style.background = '#ff4444';
+                statusText.style.color = '#ff4444';
+                statusIndicator.style.background = 'rgba(255, 68, 68, 0.1)';
+                statusIndicator.style.borderColor = 'rgba(255, 68, 68, 0.3)';
+            } else if (timeSinceLastFetch > twoMinutes) {
+                // Over 2 minutes - amber
+                statusDot.style.background = '#ffaa00';
+                statusText.style.color = '#ffaa00';
+                statusIndicator.style.background = 'rgba(255, 170, 0, 0.1)';
+                statusIndicator.style.borderColor = 'rgba(255, 170, 0, 0.3)';
+            } else {
+                // Fresh data - green
+                statusDot.style.background = '#00ff00';
+                statusText.style.color = '#00ff00';
+                statusIndicator.style.background = 'rgba(0, 255, 0, 0.1)';
+                statusIndicator.style.borderColor = 'rgba(0, 255, 0, 0.3)';
+            }
+        }
+    }
+}
+
+// Start periodic indicator updates (every 10 seconds)
+setInterval(updateDataModeIndicator, 10000);
+
 // Export functions for use in other modules
 if (typeof window !== 'undefined') {
     window.threatData = threatData;
@@ -455,4 +529,6 @@ if (typeof window !== 'undefined') {
     window.loadDestinationLabels = loadDestinationLabels;
     window.getDestinationLabel = getDestinationLabel;
     window.destinationLabels = destinationLabels;
+    window.updateDataModeIndicator = updateDataModeIndicator;
+    window.lastDataFetchTime = lastDataFetchTime;
 }

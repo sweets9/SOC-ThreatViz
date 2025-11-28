@@ -298,11 +298,17 @@ function createAttackItemHTML(threat, index) {
     
     // Get destination label if available
     const destLabel = threat.destinationLabel ? `<span class="dest-label">${threat.destinationLabel}</span>` : '';
+    
+    // Blocked/Allowed status indicator
+    const isBlocked = threat.blocked !== false;
+    const statusClass = isBlocked ? 'status-blocked-feed' : 'status-allowed-feed';
+    const statusIcon = isBlocked ? '🛡️' : '⚠️';
 
     return `
         <div class="attack-item ${severityClass}" data-index="${index}">
             <div class="attack-header">
                 <span class="attack-time">${timeAgo}</span>
+                <span class="attack-status ${statusClass}">${statusIcon}</span>
                 <span class="attack-severity ${severityClass}">${threat.severity}</span>
             </div>
             <div class="attack-name">${threat.eventname}</div>
@@ -590,28 +596,44 @@ function showCityAttacks(cityName, attacks, type) {
     // Sort attacks by timestamp (newest first)
     const sortedAttacks = [...attacks].sort((a, b) => b.timestamp - a.timestamp);
     
-    // Build attack list
-    let html = '';
+    // Build table-style attack list
+    let html = `
+        <table class="city-attack-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Severity</th>
+                    <th>Event</th>
+                    <th>Source IP</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
     sortedAttacks.slice(0, 50).forEach((threat, index) => {
         const severityClass = threat.severity.toLowerCase();
         const timeAgo = typeof formatTimestamp === 'function' ? formatTimestamp(threat.timestamp) : 'Unknown';
+        const isBlocked = threat.blocked !== false;
+        const statusText = isBlocked ? '🛡️' : '⚠️';
+        const statusClass = isBlocked ? 'blocked' : 'allowed';
         
         html += `
-            <div class="city-attack-item ${severityClass}" data-city-attack-index="${index}">
-                <div class="city-attack-header">
-                    <span class="city-attack-time">${timeAgo}</span>
-                    <span class="city-attack-severity ${severityClass}">${threat.severity}</span>
-                </div>
-                <div class="city-attack-name">${threat.eventname}</div>
-                <div class="city-attack-details">
-                    ${threat.sourceip} → ${threat.destinationip}
-                    <br>${threat.category}
-                </div>
-            </div>
+            <tr class="city-attack-row ${severityClass}" data-city-attack-index="${index}">
+                <td class="col-time">${timeAgo}</td>
+                <td class="col-severity"><span class="severity-badge ${severityClass}">${threat.severity}</span></td>
+                <td class="col-event">${threat.eventname}</td>
+                <td class="col-ip">${threat.sourceip}</td>
+                <td class="col-category">${threat.category}</td>
+                <td class="col-status ${statusClass}">${statusText}</td>
+            </tr>
         `;
     });
     
-    if (html === '') {
+    html += '</tbody></table>';
+    
+    if (sortedAttacks.length === 0) {
         html = '<div class="empty-list">No attacks found</div>';
     }
     
@@ -621,7 +643,7 @@ function showCityAttacks(cityName, attacks, type) {
     window.cityModalAttacks = sortedAttacks.slice(0, 50);
     
     // Add click handlers to show details
-    const items = listEl.querySelectorAll('.city-attack-item');
+    const items = listEl.querySelectorAll('.city-attack-row');
     items.forEach(item => {
         item.addEventListener('click', () => {
             const idx = parseInt(item.dataset.cityAttackIndex);

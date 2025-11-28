@@ -17,10 +17,11 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <h1>🌐 SOC Global Threat Visualiser</h1>
+            <img id="branding-icon" class="branding-icon hidden" alt="Brand Logo" />
+            <h1><span id="app-icon">🌐</span> SOC Global Threat Visualiser</h1>
             <div class="status-indicator">
                 <span class="status-dot"></span>
-                <span class="status-text">Live</span>
+                <span class="status-text">Test</span>
             </div>
         </div>
         <div class="header-center">
@@ -263,9 +264,29 @@
             }
 
             try {
-                // Load destination IP labels
-                console.log('📋 Loading destination labels...');
+                // Load destination IP labels and branding
+                console.log('📋 Loading destination labels and branding...');
                 await loadDestinationLabels();
+                
+                // Load branding icon from config if available
+                try {
+                    const configResponse = await fetch('/config.json');
+                    if (configResponse.ok) {
+                        const config = await configResponse.json();
+                        if (config.branding && config.branding.icon) {
+                            const brandingIcon = document.getElementById('branding-icon');
+                            const appIcon = document.getElementById('app-icon');
+                            if (brandingIcon) {
+                                brandingIcon.src = config.branding.icon;
+                                brandingIcon.classList.remove('hidden');
+                                if (appIcon) appIcon.classList.add('hidden');
+                                console.log('🏢 Loaded branding icon:', config.branding.icon);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('ℹ️ Using default branding');
+                }
 
                 // Initialize map first (only if Globe is loaded)
                 if (globeLoaded) {
@@ -276,6 +297,11 @@
                 // Initialize UI controls
                 console.log('🎛️  Initializing UI controls...');
                 initUI();
+                
+                // Initialize data mode indicator
+                if (typeof updateDataModeIndicator === 'function') {
+                    updateDataModeIndicator();
+                }
 
                 // Start data fetching
                 console.log('📡 Starting data fetch...');
