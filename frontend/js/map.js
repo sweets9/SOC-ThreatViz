@@ -128,16 +128,50 @@ function initMap() {
                 .arcsTransitionDuration(1000)  // 1 second smooth fade transition
 
                 // Ring configuration for hit animations
-                .ringColor(() => t => `rgba(255,100,50,${1 - t})`)
-                .ringMaxRadius(3)
-                .ringPropagationSpeed(2)
-                .ringRepeatPeriod(800)
+                // Dynamic color based on severity (set per ring in updateMapData)
+                .ringColor(d => {
+                    // If ring has severity info, use dynamic colors
+                    if (d.severity) {
+                        const isCritical = d.severity.toLowerCase() === 'critical';
+                        const baseColor = isCritical ? '255,50,50' : '255,150,50'; // Red for critical, orange for high
+                        return t => `rgba(${baseColor},${Math.pow(1 - t, 0.5)})`; // Slower fade
+                    }
+                    // Default color
+                    return t => `rgba(255,100,50,${1 - t})`;
+                })
+                .ringMaxRadius(d => d.maxR || 3)
+                .ringPropagationSpeed(d => d.propagationSpeed || 2)
+                .ringRepeatPeriod(d => d.repeatPeriod || 800)
 
                 // Point configuration (impact points)
-                .pointColor(d => d.type === 'destination' ? '#ff4444' : getCategoryColor(d.threat ? d.threat.category : 'default'))
-                .pointAltitude(0.01)
-                .pointRadius(d => d.type === 'destination' ? 0.4 : 0.2)
-                .pointsMerge(true)
+                .pointColor(d => {
+                    if (d.type === 'destination' && d.threat) {
+                        const severity = d.threat.severity.toLowerCase();
+                        // Brighter colors for high/critical destinations
+                        if (severity === 'critical') return '#ff0000'; // Bright red
+                        if (severity === 'high') return '#ff6600'; // Orange-red
+                    }
+                    return d.type === 'destination' ? '#ff4444' : getCategoryColor(d.threat ? d.threat.category : 'default');
+                })
+                .pointAltitude(d => {
+                    // Slightly elevated for high/critical to stand out
+                    if (d.type === 'destination' && d.threat) {
+                        const severity = d.threat.severity.toLowerCase();
+                        if (severity === 'critical') return 0.02;
+                        if (severity === 'high') return 0.015;
+                    }
+                    return 0.01;
+                })
+                .pointRadius(d => {
+                    if (d.type === 'destination' && d.threat) {
+                        const severity = d.threat.severity.toLowerCase();
+                        // Larger points for high/critical threats
+                        if (severity === 'critical') return 0.6; // Much larger
+                        if (severity === 'high') return 0.5; // Larger
+                    }
+                    return d.type === 'destination' ? 0.4 : 0.2;
+                })
+                .pointsMerge(true)  // Merge points at same location to prevent Z-fighting
 
                 // Label configuration for Australian cities (smaller font)
                 .labelsData(AUSTRALIAN_CITIES)
@@ -215,6 +249,10 @@ function updateMapData(threats) {
 
     // Create points for source and destination
     const points = [];
+
+    // Track destination points to avoid flickering when multiple threats target same location
+    const destinationMap = new Map();
+
     displayThreats.forEach(threat => {
         // Source point (smaller)
         points.push({
@@ -224,29 +262,106 @@ function updateMapData(threats) {
             threat: threat
         });
 
-        // Destination point (larger - this is what we're defending)
-        points.push({
-            lat: threat.destlat,
-            lng: threat.destlon,
-            type: 'destination',
-            threat: threat
-        });
+        // Destination point - deduplicate by location, keep highest severity
+        const destKey = `${threat.destlat.toFixed(6)},${threat.destlon.toFixed(6)}`;
+        const existingDest = destinationMap.get(destKey);
+
+        if (!existingDest) {
+            // New destination
+            destinationMap.set(destKey, {
+                lat: threat.destlat,
+                lng: threat.destlon,
+                type: 'destination',
+                threat: threat
+            });
+        } else {
+            // Destination already exists - keep the higher severity
+            const severityWeight = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+            const currentWeight = severityWeight[threat.severity.toLowerCase()] || 0;
+            const existingWeight = severityWeight[existingDest.threat.severity.toLowerCase()] || 0;
+
+            if (currentWeight > existingWeight) {
+                // Replace with higher severity threat
+                destinationMap.set(destKey, {
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    type: 'destination',
+                    threat: threat
+                });
+            }
+        }
     });
+
+    // Add all unique destination points to the points array
+    destinationMap.forEach(point => points.push(point));
 
     // Update points data with smooth transition
     globe.pointsData(points);
 
     // Add hit animation rings at destinations (for high/critical threats)
-    const rings = displayThreats
+    // Create multi-layered rings for enhanced visual impact
+    const rings = [];
+
+    displayThreats
         .filter(t => t.severity.toLowerCase() === 'critical' || t.severity.toLowerCase() === 'high')
-        .slice(0, 10)  // Limit to 10 rings for performance
-        .map(threat => ({
-            lat: threat.destlat,
-            lng: threat.destlon,
-            maxR: threat.severity.toLowerCase() === 'critical' ? 4 : 2,
-            propagationSpeed: 3,
-            repeatPeriod: threat.severity.toLowerCase() === 'critical' ? 600 : 1000
-        }));
+        .slice(0, 10)  // Limit to prevent performance issues
+        .forEach(threat => {
+            const isCritical = threat.severity.toLowerCase() === 'critical';
+
+            if (isCritical) {
+                // CRITICAL: Triple-ring burst effect with large radius and fast propagation
+                // Outer ring - large and dramatic
+                rings.push({
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    maxR: 8,  // Much larger radius
+                    propagationSpeed: 4,  // Very fast
+                    repeatPeriod: 500,  // Very frequent
+                    severity: threat.severity
+                });
+
+                // Middle ring - medium size, offset timing
+                rings.push({
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    maxR: 5,
+                    propagationSpeed: 3.5,
+                    repeatPeriod: 550,  // Slightly offset
+                    severity: threat.severity
+                });
+
+                // Inner ring - smaller, creates layered effect
+                rings.push({
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    maxR: 3,
+                    propagationSpeed: 3,
+                    repeatPeriod: 600,  // More offset
+                    severity: threat.severity
+                });
+            } else {
+                // HIGH: Double-ring effect with moderate impact
+                // Outer ring
+                rings.push({
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    maxR: 4,
+                    propagationSpeed: 2.5,
+                    repeatPeriod: 800,
+                    severity: threat.severity
+                });
+
+                // Inner ring
+                rings.push({
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    maxR: 2.5,
+                    propagationSpeed: 2,
+                    repeatPeriod: 900,  // Slightly offset
+                    severity: threat.severity
+                });
+            }
+        });
 
     globe.ringsData(rings);
 
