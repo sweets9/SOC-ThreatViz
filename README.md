@@ -4,6 +4,26 @@ A real-time cyber threat visualization system designed for Security Operations C
 
 ![SOC Global Threat Visualiser Dashboard](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/dashboard.png)
 
+## Purpose
+
+**Primary Purpose**: This application is primarily a **Visualiser** - designed to provide a realistic representation of attacks against your infrastructure in a visually compelling format.
+
+**For Analysts**: While not originally designed specifically for analyst use, this tool has proven to be a highly useful capability extender for visual learners. Analysts can functionally group attacks from nearby IP addresses or source locations, making pattern recognition easier. However, the sheer volume of arc lines and data sources makes validation tricky, so this tool should be used as a visual aid rather than a definitive source of truth.
+
+**Current Status**: Functionality is being actively implemented and developed. The application is being released "as is" due to its demonstrated value for visual learners. No promises are made for accuracy, though extensive testing has been done to verify functionality. The project will be continually developed, and contributions via pull requests are appreciated.
+
+**Data Ingestion**: Separate modules for data ingestion are being developed to allow data to be parsed and sent to the Visualiser data source. This will provide more flexibility in data source integration.
+
+## Security Notice
+
+**Current Security Controls**: Security controls are currently minimal by design, as the application is intended to run in a 1:1 deployment scenario. It is expected that other security controls will be in place at the infrastructure level, such as:
+- Network segmentation
+- SSL/TLS certificates
+- Firewall rules
+- Access controls
+
+**Future Security**: If this application evolves into more of an "attack explorer" tool with broader deployment, additional security controls will be implemented. See the Features Roadmap below for planned security enhancements.
+
 ## Features
 
 - **3D Globe Visualization**: Interactive 3D globe showing global threat activity
@@ -15,19 +35,24 @@ A real-time cyber threat visualization system designed for Security Operations C
 - **Attack Details**: Click any threat for detailed information
 - **Top Attackers & Targets**: Quick view of most active sources and targets
 
-## Screenshots
+## Screenshots and Demo
 
-### Main Dashboard
-![Main Dashboard](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/dashboard.png)
-*The main dashboard showing the 3D globe with threat arcs, real-time feed, and statistics panels.*
+### Demo Video
+Watch a demonstration of the SOC Global Threat Visualiser in action:
+
+https://github.com/sweets9/SOC-ThreatViz/blob/main/screenshots/Demo_v1.mp4
+
+### Main Dashboard (Overwatch Screen)
+![Overwatch Screen](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/Overwatch%20Screen.jpg)
+*The main dashboard showing the 3D globe with threat arcs, real-time feed, and statistics panels. This "overwatch" view provides a comprehensive overview of global threat activity.*
 
 ### Attack Details
-![Attack Details](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/attack-details.png)
-*Detailed view of a specific attack showing source, target, service, and status information.*
+![Attack Details](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/AttackDetails.jpg)
+*Detailed view of a specific attack showing source, target, service, and status information. Click on any threat in the feed or on the map to view comprehensive attack details.*
 
-### City Attack View
-![City Attack View](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/city-attacks.png)
-*View showing all attacks originating from or targeting a specific city with geographic pivot options.*
+### City Drilldown and Pivot Options
+![City Drilldown and Pivot Options](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/CityDrilldown%20and%20Pivot%20Options.jpg)
+*View showing all attacks originating from or targeting a specific city with geographic pivot options. Analysts can drill down by city, expand to country-level, or view attacks within radius-based geographic areas.*
 
 ## Installation
 
@@ -234,10 +259,33 @@ For issues and questions:
 - Contact your SOC administrator
 - Review the technical documentation
 
-## License
+## Features Roadmap
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.
+The following features are planned for future development:
+
+### Security Enhancements
+- **Added Security**: Enhanced security controls for broader deployment scenarios
+- **SSO Integration**: Seamless login integration with Single Sign-On for kiosk mode
+- **RBAC**: Role-Based Access Control for multi-user environments
+- **Security Logging**: Comprehensive security event logging
+- **Library Tightening**: Review and tighten JavaScript libraries in use
+
+### Functionality Improvements
+- **Remote Kiosk Control**: WebSocket-based remote control of kiosk displays (after security controls are implemented)
+- **Database Migration**: Migration from CSV to backend database (SQLite or Parquet) if the application evolves into more of an attack explorer tool
+  - *Note: Current CSV performance is completely fit for purpose for visualization needs*
+- **MITRE ATT&CK Alignment**: Alignment to MITRE ATT&CK framework
+  - *Note: This is challenging as current labeling is more digestible by a wider audience, but some form of alignment is a priority*
+- **Labeling Review**: Review and clarification of labeling around Severity/Residual Risk/Threat Risk to make it clearer
+- **Flat Map Mode**: Implementation of flat map visualization mode
+
+### Data Integration
+- **Ingestion Modules**: Separate modules for data ingestion to allow flexible parsing and sending to the Visualiser data source
 
 ## Contributing
 
-Contributions are welcome! Please read the technical documentation and follow the project's coding standards.
+Contributions are welcome! This project is actively being developed, and pull requests are appreciated. Please read the technical documentation and follow the project's coding standards.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.

@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Application version - single source of truth
-const APP_VERSION = '1.13.0-v1';
+const APP_VERSION = '1.0.1';
 
 // Colors for console output
 const colors = {

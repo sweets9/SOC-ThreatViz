@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Application version - should match package.json, cli.js, and frontend
-const APP_VERSION = '1.13.0-v1';
+const APP_VERSION = '1.0.1';
 
 // Load configuration
 let config = {};

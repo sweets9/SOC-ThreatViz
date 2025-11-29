@@ -9,7 +9,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Application version - should match package.json, cli.js, frontend, and server.js
-const APP_VERSION = '1.13.0-v1';
+const APP_VERSION = '1.0.1';
 
 // Get git commit hash
 let COMMIT_HASH = 'dev';
