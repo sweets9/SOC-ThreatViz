@@ -1,116 +1,89 @@
-# Live Global Cyber Threat Map
+# SOC Global Threat Visualiser
 
-A real-time cyber threat visualization system designed for Security Operations Centers (SOC). Features a stunning 3D globe and flat map view with animated attack arcs showing threats from source to destination.
+A real-time cyber threat visualization system designed for Security Operations Centers (SOC). Features a stunning 3D globe visualization with animated attack arcs showing threats from source to destination in real-time.
+
+![SOC Global Threat Visualiser Dashboard](screenshots/dashboard.png)
 
 ## Features
 
-### Visualization
-- **Dual View Modes**:
-  - Flat map view (default) centered on Australia
-  - 3D rotating globe view with smooth transitions
-- **Auto-Rotation Mode**: Automatically switches to globe view every 60 seconds, performs a full rotation, then returns to flat map
-- **Animated Attack Arcs**: Visual arcs showing attack paths from source to destination
-- **Intensity-Based Styling**: Attack visualization varies based on volume and severity
-- **Real-Time Feed**: Scrolling list of live attacks at the bottom of the screen
+- **3D Globe Visualization**: Interactive 3D globe showing global threat activity
+- **Real-Time Threat Feed**: Live scrolling feed of security events
+- **Arc Display Control**: Adjustable visualization density (10%, 25%, 50%, 100%)
+- **Focus on Risk Mode**: Filter to show only residual risk (allowed threats)
+- **Auto-Rotation**: Automatic globe rotation for continuous monitoring
+- **Multiple Timeframes**: View threats from 1 hour, 24 hours, or 7 days
+- **Attack Details**: Click any threat for detailed information
+- **Top Attackers & Targets**: Quick view of most active sources and targets
 
-### Data Sources
-- **Local Source Mode** (Primary): Custom data from CSV file for SOC display
-- **Public Feed Mode**: Publicly available threat intelligence data (optional)
+## Screenshots
 
-### Time Controls
-- Adjustable time frames: 1 hour, 24 hours, 7 days
-- Real-time event filtering based on selected timeframe
+### Main Dashboard
+![Main Dashboard](screenshots/dashboard.png)
+*The main dashboard showing the 3D globe with threat arcs, real-time feed, and statistics panels.*
 
-### Security
-- API token authentication for webhook endpoints
-- IP whitelisting for backend API access
-- Secure CSV file updates via REST API
+### Attack Details
+![Attack Details](screenshots/attack-details.png)
+*Detailed view of a specific attack showing source, target, service, and status information.*
 
-## Architecture
-
-```
-┌─────────────────────────────────────────┐
-│         Frontend (Browser)              │
-│  ┌─────────────────────────────────┐   │
-│  │  Threat Map Visualization       │   │
-│  │  - Cesium.js (3D/2D)            │   │
-│  │  - Attack Arcs & Animations     │   │
-│  │  - Real-time Event Feed         │   │
-│  └─────────────────────────────────┘   │
-└─────────────┬───────────────────────────┘
-              │ HTTP/Polling
-              ▼
-┌─────────────────────────────────────────┐
-│      Backend API Server (Node.js)       │
-│  ┌─────────────────────────────────┐   │
-│  │  Express REST API               │   │
-│  │  - Serve CSV data               │   │
-│  │  - Webhook endpoint             │   │
-│  │  - Authentication & IP filter   │   │
-│  └─────────────────────────────────┘   │
-└─────────────┬───────────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────────────┐
-│         Data Storage (CSV)              │
-│  threat_data.csv                        │
-└─────────────────────────────────────────┘
-              ▲
-              │ Webhook
-┌─────────────┴───────────────────────────┐
-│    External Sources (Splunk, SIEM)      │
-└─────────────────────────────────────────┘
-```
+### City Attack View
+![City Attack View](screenshots/city-attacks.png)
+*View showing all attacks originating from or targeting a specific city with geographic pivot options.*
 
 ## Installation
 
 ### Prerequisites
-- Node.js 16+ and npm
-- Modern web browser (Chrome/Chromium recommended)
 
-### Setup
+- **Node.js** 16+ and npm
+- **Modern web browser** (Chrome/Chromium recommended for best performance)
+- **Git** (for cloning the repository)
+
+### Quick Start
 
 1. **Clone the repository**
-```bash
-git clone <repository-url>
-cd LiveGlobalThreatMapClaude
-```
+   ```bash
+   git clone https://github.com/sweets9/SOC-ThreatViz.git
+   cd SOC-ThreatViz
+   ```
 
 2. **Install dependencies**
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. **Configure the application**
-```bash
-cp config.example.json config.json
-# Edit config.json with your settings
-```
+   ```bash
+   cp config.example.json config.json
+   # Edit config.json with your settings (see Configuration section)
+   ```
 
-4. **Start the backend server**
-```bash
-npm start
-```
+4. **Generate sample data** (optional, for testing)
+   ```bash
+   npm run generate-sample-data
+   ```
 
-5. **Open the frontend**
-Navigate to `http://localhost:3000` in your browser
+5. **Start the server**
+   ```bash
+   npm start
+   ```
+
+6. **Open in your browser**
+   Navigate to `http://localhost:3001` (or the port specified in your config)
 
 ## Configuration
 
-Edit `config.json`:
+Edit `config.json` to customize your installation:
 
 ```json
 {
   "server": {
-    "port": 3000,
+    "port": 3001,
     "host": "0.0.0.0"
   },
   "security": {
-    "apiToken": "your-secure-token-here",
+    "apiToken": "your-secure-api-token-here",
     "allowedIPs": [
       "127.0.0.1",
-      "192.168.1.0/24",
-      "10.0.0.0/8"
+      "192.168.1.0/24"
     ]
   },
   "data": {
@@ -119,215 +92,152 @@ Edit `config.json`:
     "maxEvents": 10000
   },
   "map": {
-    "defaultView": "flat",
-    "centerLat": -25.0,
-    "centerLon": 133.0,
-    "autoRotate": true,
-    "rotateInterval": 60000
+    "arcDisplayPercentage": 100,
+    "autoRotate": true
   }
 }
 ```
 
-## API Endpoints
+### Key Configuration Options
 
-### GET /api/threats
-Retrieve threat data with optional time filtering
+- **server.port**: Port number for the web server (default: 3001)
+- **security.apiToken**: Token for webhook authentication
+- **security.allowedIPs**: IP addresses/networks allowed to access the API
+- **data.csvPath**: Path to your threat data CSV file
+- **map.arcDisplayPercentage**: Default percentage of arcs to display (10, 25, 50, or 100)
 
-**Query Parameters:**
-- `timeframe`: `1h`, `24h`, or `7d` (default: `24h`)
+## Usage
 
-**Example:**
-```bash
-curl http://localhost:3000/api/threats?timeframe=1h
-```
+### Controls
 
-### POST /api/webhook/update
-Update threat data via webhook (requires authentication)
-
-**Headers:**
-- `Authorization: Bearer <API_TOKEN>`
-- `Content-Type: application/json`
-
-**Body:**
-```json
-{
-  "timestamp": "2024-01-15T14:30:45Z",
-  "eventname": "Apache RCE Vulnerability Exploit",
-  "sourceip": "185.220.101.45",
-  "sourcelocation": "52.5200,13.4050",
-  "destinationip": "203.12.45.67",
-  "destinationlocation": "-33.8688,151.2093",
-  "volume": 85,
-  "severity": "critical",
-  "category": "Infiltration Attempts",
-  "detectionsource": "Splunk"
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:3000/api/webhook/update \
-  -H "Authorization: Bearer your-token-here" \
-  -H "Content-Type: application/json" \
-  -d @threat_event.json
-```
-
-### POST /api/webhook/bulk
-Bulk update multiple threat events
-
-**Headers:**
-- `Authorization: Bearer <API_TOKEN>`
-- `Content-Type: application/json`
-
-**Body:**
-```json
-{
-  "events": [
-    { /* event 1 */ },
-    { /* event 2 */ }
-  ]
-}
-```
-
-## Data Format
-
-See [DATA_SCHEMA.md](DATA_SCHEMA.md) for complete CSV format specification.
-
-**Quick Example:**
-```csv
-timestamp,eventname,sourceip,sourcelocation,destinationip,destinationlocation,volume,severity,category,detectionsource
-2024-01-15T14:30:45Z,Apache RCE Vulnerability Exploit,185.220.101.45,52.5200,13.4050,203.12.45.67,-33.8688,151.2093,85,critical,Infiltration Attempts,Splunk
-```
-
-## Controls
+- **Auto Rotate**: Enable/disable automatic globe rotation
+- **Focus on Risk**: Filter to show only allowed threats (residual risk)
+- **Arc Display**: Select percentage of threats to visualize (10%, 25%, 50%, 100%)
+- **Time Frame**: Choose data timeframe (1h, 24h, 7d)
+- **Data Mode**: Switch between Test Data and Live Data
 
 ### Keyboard Shortcuts
+
 - **Space**: Toggle between flat map and globe view
 - **R**: Toggle auto-rotation mode
 - **1**: Set timeframe to 1 hour
 - **2**: Set timeframe to 24 hours
 - **3**: Set timeframe to 7 days
 
-### UI Controls
-- **View Toggle**: Switch between 2D map and 3D globe
-- **Auto-Rotate**: Enable/disable automatic globe rotation mode
-- **Timeframe Selector**: Choose data timeframe (1h / 24h / 7d)
+### Interacting with the Map
 
-## Integrating with Splunk
+- **Click on arcs**: View attack details
+- **Click on cities**: See all attacks from/to that location
+- **Click on threat feed items**: View detailed information
+- **Click on top attackers/targets**: Filter to show related attacks
 
-### Configure Webhook Alert Action
+## Data Format
 
-1. In Splunk, create a new alert
-2. Set trigger conditions for security events
-3. Add webhook action with URL: `http://your-server:3000/api/webhook/update`
-4. Add header: `Authorization: Bearer your-token-here`
-5. Configure payload to match the required format (see API documentation)
+The application reads threat data from a CSV file. See [DATA_SCHEMA.md](DATA_SCHEMA.md) for the complete data format specification.
 
-### Example Splunk Search
-```spl
-index=security sourcetype=firewall action=blocked
-| eval sourcelocation=lat.",".lon
-| eval destinationlocation=dest_lat.",".dest_lon
-| table _time, signature, src_ip, sourcelocation, dest_ip, destinationlocation, bytes, severity, category, sourcetype
-| rename _time as timestamp, signature as eventname, src_ip as sourceip, dest_ip as destinationip, bytes as volume, sourcetype as detectionsource
-```
+**Required CSV Fields:**
+- `timestamp`: ISO 8601 timestamp
+- `eventname`: Name of the security event
+- `sourceip`: Source IP address
+- `sourcelocation`: Source coordinates (lat,lon)
+- `sourcecity`: Source city name
+- `sourcecountry`: Source country name
+- `destinationip`: Target IP or email address
+- `destinationlocation`: Destination coordinates (lat,lon)
+- `destinationcity`: Destination city name
+- `destinationcountry`: Destination country name
+- `destinationport`: Destination port number
+- `destinationservice`: Service name (e.g., HTTPS, SMTP)
+- `volume`: Packet/byte volume
+- `severity`: Threat severity (low, medium, high, critical)
+- `category`: Attack category
+- `detectionsource`: Detection system (e.g., Splunk, IDS)
+- `blocked`: Boolean indicating if threat was blocked
 
-## Demo Mode
+## Webhook Integration
 
-Generate sample data for demonstration:
+Send threat data to the application via webhook:
 
 ```bash
-npm run generate-sample-data
+curl -X POST http://localhost:3001/api/webhook/update \
+  -H "Authorization: Bearer your-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timestamp": "2025-11-29T10:30:45Z",
+    "eventname": "Malicious URL Blocked",
+    "sourceip": "185.220.101.45",
+    "sourcelocation": "52.5200,13.4050",
+    "sourcecity": "Berlin",
+    "sourcecountry": "Germany",
+    "destinationip": "200.200.2.1",
+    "destinationlocation": "-33.8688,151.2093",
+    "destinationcity": "Sydney",
+    "destinationcountry": "Australia",
+    "destinationport": 443,
+    "destinationservice": "HTTPS",
+    "volume": 85,
+    "severity": "high",
+    "category": "Web Gateway Threats",
+    "detectionsource": "Splunk",
+    "blocked": true
+  }'
 ```
 
-This creates a CSV file with realistic threat data for testing.
+## Deployment
 
-## Deployment for SOC
+### Production Deployment
 
-### Hardware Requirements
-- Display: Large format display or video wall
-- Computer: Modern PC capable of hardware-accelerated graphics
-- Network: Stable connection to backend server
+1. **Set up HTTPS**: Use a reverse proxy (nginx, Apache) with SSL certificates
+2. **Configure firewall**: Only allow necessary ports
+3. **Set strong API tokens**: Use 32+ character random tokens
+4. **Configure IP whitelisting**: Restrict API access to trusted sources
+5. **Set up log rotation**: Manage CSV file growth
+6. **Monitor resources**: Watch disk space and memory usage
 
-### Browser Setup (Chromium)
-1. Start Chromium in kiosk mode:
+### Kiosk Mode (Display Wall)
+
+For SOC display walls, run the application in kiosk mode:
+
 ```bash
-chromium-browser --kiosk --app=http://localhost:3000
+chromium-browser --kiosk --app=http://localhost:3001
 ```
 
-2. Disable screen blanking and power management
-3. Enable auto-start on boot
-
-### Production Considerations
-- Use HTTPS with valid certificates
-- Set strong API tokens (32+ characters)
-- Configure proper IP whitelisting
-- Set up log rotation for CSV files
-- Monitor disk space for data storage
-- Consider backup and disaster recovery
+Disable screen blanking and power management on the display system.
 
 ## Troubleshooting
 
 ### No attacks showing on map
-- Check CSV file exists and has correct format
-- Verify timestamps are recent (within selected timeframe)
-- Check browser console for errors
+- Verify CSV file exists and has correct format
+- Check timestamps are recent (within selected timeframe)
+- Open browser console (F12) to check for errors
+- Verify data file path in config.json
 
 ### Webhook updates not working
-- Verify API token is correct
-- Check source IP is whitelisted
+- Verify API token matches config.json
+- Check source IP is in allowedIPs list
 - Review backend server logs
-- Test with curl command
+- Test with curl command (see Webhook Integration)
 
 ### Performance issues
+- Reduce arc display percentage (10% or 25%)
 - Reduce CSV file size (keep under 10,000 events)
 - Increase polling interval in config
-- Check browser hardware acceleration is enabled
+- Enable hardware acceleration in browser
 - Monitor server CPU and memory usage
-
-## Development
-
-### Project Structure
-```
-LiveGlobalThreatMapClaude/
-├── backend/
-│   ├── server.js           # Express API server
-│   ├── routes/             # API route handlers
-│   ├── middleware/         # Auth & security middleware
-│   └── utils/              # Helper functions
-├── frontend/
-│   ├── index.html          # Main HTML file
-│   ├── css/
-│   │   └── style.css       # Styles
-│   └── js/
-│       ├── map.js          # Map/globe visualization
-│       ├── data.js         # Data fetching & processing
-│       └── ui.js           # UI controls & interactions
-├── data/
-│   └── threat_data.csv     # Threat data storage
-├── scripts/
-│   └── generate-sample.js  # Sample data generator
-├── config.json             # Application configuration
-├── DATA_SCHEMA.md          # Data format specification
-└── README.md               # This file
-```
-
-### Running in Development
-```bash
-# Start backend with auto-reload
-npm run dev
-
-# Generate sample data
-npm run generate-sample-data
-
-# Run tests
-npm test
-```
-
-## License
-
-[Your License Here]
 
 ## Support
 
-For issues and questions, please contact your SOC administrator or open an issue in the repository.
+For technical documentation, API details, and advanced configuration, see [TECHNICAL.md](TECHNICAL.md).
+
+For issues and questions:
+- Open an issue on GitHub
+- Contact your SOC administrator
+- Review the technical documentation
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.
+
+## Contributing
+
+Contributions are welcome! Please read the technical documentation and follow the project's coding standards.
