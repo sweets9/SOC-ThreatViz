@@ -2,8 +2,6 @@
 
 A real-time cyber threat visualization system designed for Security Operations Centers (SOC). Features a stunning 3D globe visualization with animated attack arcs showing threats from source to destination in real-time.
 
-![SOC Global Threat Visualiser Dashboard](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/dashboard.png)
-
 ## Purpose
 
 **Primary Purpose**: This application is primarily a **Visualiser** - designed to provide a realistic representation of attacks against your infrastructure in a visually compelling format.
@@ -42,16 +40,16 @@ Watch a demonstration of the SOC Global Threat Visualiser in action:
 
 https://github.com/sweets9/SOC-ThreatViz/blob/main/screenshots/Demo_v1.mp4
 
-### Main Dashboard (Overwatch Screen)
-![Overwatch Screen](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/Overwatch%20Screen.jpg)
+### Main Dashboard (Overwatch)
+![Overwatch Dashboard](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/OverwatchDash.jpg)
 *The main dashboard showing the 3D globe with threat arcs, real-time feed, and statistics panels. This "overwatch" view provides a comprehensive overview of global threat activity.*
 
-### Attack Details
-![Attack Details](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/AttackDetails.jpg)
+### Attack Details View
+![Attack Details View](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/AttackDetailsView.jpg)
 *Detailed view of a specific attack showing source, target, service, and status information. Click on any threat in the feed or on the map to view comprehensive attack details.*
 
-### City Drilldown and Pivot Options
-![City Drilldown and Pivot Options](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/CityDrilldown%20and%20Pivot%20Options.jpg)
+### City Drilldown View
+![City Drilldown View](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/CityDrilldownView.jpg)
 *View showing all attacks originating from or targeting a specific city with geographic pivot options. Analysts can drill down by city, expand to country-level, or view attacks within radius-based geographic areas.*
 
 ## Installation
