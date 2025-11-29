@@ -2,7 +2,7 @@
 
 A real-time cyber threat visualization system designed for Security Operations Centers (SOC). Features a stunning 3D globe visualization with animated attack arcs showing threats from source to destination in real-time.
 
-![SOC Global Threat Visualiser Dashboard](screenshots/dashboard.png)
+![SOC Global Threat Visualiser Dashboard](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/dashboard.png)
 
 ## Features
 
@@ -18,15 +18,15 @@ A real-time cyber threat visualization system designed for Security Operations C
 ## Screenshots
 
 ### Main Dashboard
-![Main Dashboard](screenshots/dashboard.png)
+![Main Dashboard](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/dashboard.png)
 *The main dashboard showing the 3D globe with threat arcs, real-time feed, and statistics panels.*
 
 ### Attack Details
-![Attack Details](screenshots/attack-details.png)
+![Attack Details](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/attack-details.png)
 *Detailed view of a specific attack showing source, target, service, and status information.*
 
 ### City Attack View
-![City Attack View](screenshots/city-attacks.png)
+![City Attack View](https://raw.githubusercontent.com/sweets9/SOC-ThreatViz/main/screenshots/city-attacks.png)
 *View showing all attacks originating from or targeting a specific city with geographic pivot options.*
 
 ## Installation
