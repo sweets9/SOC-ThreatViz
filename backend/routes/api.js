@@ -6,9 +6,18 @@ const { readThreatData, appendThreat, appendThreats, isValidThreat, filterByTime
 const { authenticate } = require('../middleware/auth');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-// Application version
-const APP_VERSION = '1.2.2';
+// Application version - should match package.json, cli.js, frontend, and server.js
+const APP_VERSION = '1.13.0-v1';
+
+// Get git commit hash
+let COMMIT_HASH = 'dev';
+try {
+    COMMIT_HASH = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+} catch (e) {
+    // Not in git repo or git not available
+}
 
 let config = {};
 
@@ -159,6 +168,8 @@ router.get('/info', async (req, res) => {
             success: true,
             appName: 'SOC Global Threat Visualiser',
             version: APP_VERSION,
+            commit: COMMIT_HASH,
+            versionFull: `${APP_VERSION}-${COMMIT_HASH}`,
             mode: mode,
             csv: {
                 path: targetCsvPath,

@@ -1,11 +1,12 @@
 {
   "name": "soc-global-threat-visualiser",
-  "version": "1.2.3",
+  "version": "1.13.0-v1",
   "description": "Real-time cyber threat visualization system for Security Operations Centers",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
+    "menu": "node cli.js",
     "generate-sample-data": "node scripts/generate-sample.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

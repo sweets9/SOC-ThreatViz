@@ -17,51 +17,58 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <h1>🌐 SOC Global Threat Visualiser</h1>
-            <div class="status-indicator">
-                <span class="status-dot"></span>
-                <span class="status-text">Live</span>
-            </div>
+            <button id="toggle-settings" class="btn btn-menu" title="Toggle Settings Panel">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
         </div>
         <div class="header-center">
+            <img id="branding-icon" class="branding-icon hidden" alt="Brand Logo" />
+            <h1>SOC Global Threat Visualiser</h1>
+        </div>
+        <div class="header-right">
             <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Threats Blocked</span>
-                    <span class="stat-value" id="total-threats">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Active</span>
-                    <span class="stat-value" id="active-threats">0</span>
-                </div>
                 <div class="stat-item">
                     <span class="stat-label">Critical</span>
                     <span class="stat-value critical" id="critical-threats">0</span>
                 </div>
+                <div class="stat-item">
+                    <span class="stat-label">Blocked</span>
+                    <span class="stat-value" id="total-threats">0</span>
+                </div>
             </div>
-        </div>
-        <div class="header-right">
-            <button id="toggle-settings" class="btn btn-hamburger" title="Toggle Settings Panel">
-                <span class="hamburger-icon">☰</span>
-            </button>
         </div>
     </header>
 
     <!-- Controls Panel (Collapsible) -->
     <div class="controls" id="controls-panel">
         <div class="control-group">
-            <label>View Mode</label>
-            <button id="toggle-view" class="btn btn-primary">
-                <span id="view-icon">🌍</span>
-                <span id="view-text">3D Globe</span>
-            </button>
-        </div>
-
-        <div class="control-group">
             <label>Auto Rotate</label>
             <button id="toggle-rotate" class="btn btn-secondary">
                 <span>🔄</span>
                 <span id="rotate-text">Enable</span>
             </button>
+        </div>
+
+        <div class="control-group">
+            <label>Focus on Risk</label>
+            <button id="toggle-focus" class="btn btn-secondary">
+                <span>🎯</span>
+                <span id="focus-text">Enable</span>
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Arc Display</label>
+            <select id="arc-display-percentage" class="btn btn-secondary" style="padding: 8px 12px;">
+                <option value="10">10%</option>
+                <option value="25">25%</option>
+                <option value="50">50%</option>
+                <option value="100" selected>100%</option>
+            </select>
         </div>
 
         <div class="control-group">
@@ -80,13 +87,28 @@
                 <option value="live">Live Data</option>
             </select>
         </div>
+
+        <div class="control-group">
+            <label>Theme</label>
+            <select id="theme-selector" class="select">
+                <option value="crimson" selected>🔴 Crimson</option>
+                <option value="cyan">🔵 Cyan</option>
+                <option value="green">🟢 Matrix</option>
+                <option value="purple">🟣 Purple</option>
+                <option value="orange">🟠 Orange</option>
+            </select>
+        </div>
+
     </div>
 
-    <!-- Left Sidebar Attack Feed -->
+    <!-- Left Sidebar Threat Feed -->
     <div class="attack-sidebar" id="attack-sidebar">
         <div class="sidebar-header">
-            <h2>🔴 Attack Feed</h2>
-            <button id="pause-feed" class="btn btn-small">⏸</button>
+            <h2>🔴 Threat Feed</h2>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Test</span>
+            </div>
         </div>
         <div class="sidebar-content" id="feed-content">
             <!-- Attack items will be dynamically added here -->
@@ -137,236 +159,131 @@
                 <span class="legend-count" id="count-web-gateway-threats">(0)</span>
             </div>
 
-            <h3 style="margin-top: 15px;">Severity</h3>
+            <h3 style="margin-top: 15px;">Severity <span style="font-size: 10px; font-weight: normal; opacity: 0.7;">(RR/TR)</span></h3>
+            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 8px; line-height: 1.3;">
+                RR = Residual Risk (allowed)<br>
+                TR = Threat Risk (total detected)
+            </div>
             <div class="legend-item clickable" data-severity="low">
                 <span class="legend-color" style="background: #666;"></span>
                 <span class="legend-text">Low</span>
-                <span class="legend-count" id="count-severity-low">(0)</span>
+                <span class="legend-count" id="count-severity-low" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
             <div class="legend-item clickable" data-severity="medium">
-                <span class="legend-color" style="background: #ffaa00;"></span>
+                <span class="legend-color" style="background: #cc8844;"></span>
                 <span class="legend-text">Medium</span>
-                <span class="legend-count" id="count-severity-medium">(0)</span>
+                <span class="legend-count" id="count-severity-medium" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
             <div class="legend-item clickable" data-severity="high">
                 <span class="legend-color" style="background: #ff6600;"></span>
                 <span class="legend-text">High</span>
-                <span class="legend-count" id="count-severity-high">(0)</span>
+                <span class="legend-count" id="count-severity-high" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
             <div class="legend-item clickable" data-severity="critical">
                 <span class="legend-color" style="background: #ff0000;"></span>
                 <span class="legend-text">Critical</span>
-                <span class="legend-count" id="count-severity-critical">(0)</span>
-                <!DOCTYPE html>
-                <html lang="en">
+                <span class="legend-count" id="count-severity-critical" title="Residual Risk / Threat Risk">(0/0)</span>
+            </div>
 
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>SOC Global Threat Visualiser</title>
+            <!-- Top 3 Attacker Locations -->
+            <div id="top-attackers-list" class="attacker-list">
+                <!-- Dynamically populated -->
+            </div>
+            <!-- Top 3 Attacked Targets -->
+            <div id="top-targets-list" class="attacker-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
 
-                    <!-- Globe.GL for 3D globe visualization -->
-                    <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
+    <!-- Debug Info Bar -->
+    <div class="debug-bar">
+        <span class="app-name">SOC Global Threat Visualiser</span>
+        <span class="version">v<span id="app-version">1.13.0-v1</span></span>
+        <span>CSV: <span id="csv-size">0 KB</span></span>
+        <span>Entries: <span id="csv-entries">0</span></span>
+        <span>Updated: <span id="last-updated">--</span></span>
+        <span class="debug-console-link" id="debug-console-link" title="Open Debug Console">Debug</span>
+    </div>
 
-                    <!-- Custom CSS -->
-                    <link rel="stylesheet" href="css/style.css">
-                </head>
+    <!-- Attack Detail Modal -->
+    <div id="attack-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚡ Attack Details</h2>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="attack-details">
+                    <!-- Details will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <body>
-                    <!-- Header -->
-                    <header class="header">
-                        <div class="header-left">
-                            <h1>🌐 SOC Global Threat Visualiser</h1>
-                            <div class="status-indicator">
-                                <span class="status-dot"></span>
-                                <span class="status-text">Live</span>
-                            </div>
-                        </div>
-                        <div class="header-center">
-                            <div class="stats">
-                                <div class="stat-item">
-                                    <span class="stat-label">Threats Blocked</span>
-                                    <span class="stat-value" id="total-threats">0</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Active</span>
-                                    <span class="stat-value" id="active-threats">0</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Critical</span>
-                                    <span class="stat-value critical" id="critical-threats">0</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="header-right">
-                            <button id="toggle-settings" class="btn btn-hamburger" title="Toggle Settings Panel">
-                                <span class="hamburger-icon">☰</span>
-                            </button>
-                        </div>
-                    </header>
+    <!-- Debug Console Modal -->
+    <div id="debug-console-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>🔍 Debug Console</h2>
+                <span class="modal-close" onclick="closeDebugConsole()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="debug-console-content">
+                    <!-- Debug info will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Controls Panel (Collapsible) -->
-                    <div class="controls" id="controls-panel">
-                        <div class="control-group">
-                            <label>View Mode</label>
-                            <button id="toggle-view" class="btn btn-primary">
-                                <span id="view-icon">🌍</span>
-                                <span id="view-text">3D Globe</span>
-                            </button>
-                        </div>
+    <!-- City Filter Modal -->
+    <div id="city-filter-modal" class="city-filter-modal hidden">
+        <div class="city-filter-header">
+            <h3 id="city-filter-title">Attacks from City</h3>
+            <span class="city-filter-close" onclick="closeCityFilter()">&times;</span>
+        </div>
+        <div id="city-attack-list" class="city-attack-list">
+            <!-- Attack items will be populated dynamically -->
+        </div>
+    </div>
 
-                        <div class="control-group">
-                            <label>Auto Rotate</label>
-                            <button id="toggle-rotate" class="btn btn-secondary">
-                                <span>🔄</span>
-                                <span id="rotate-text">Enable</span>
-                            </button>
-                        </div>
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        // Application version and commit
+        const APP_VERSION = '1.13.0-v1';
+        const COMMIT_HASH = '{{COMMIT_HASH}}'; // Will be replaced by build or shown as dev
 
-                        <div class="control-group">
-                            <label>Time Frame</label>
-                            <div class="btn-group">
-                                <button class="btn btn-timeframe" data-timeframe="1h">1h</button>
-                                <button class="btn btn-timeframe active" data-timeframe="24h">24h</button>
-                                <button class="btn btn-timeframe" data-timeframe="7d">7d</button>
-                            </div>
-                        </div>
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🌐 Initializing SOC Global Threat Visualiser...');
 
-                        <div class="control-group">
-                            <label>Data Mode</label>
-                            <select id="data-mode" class="select">
-                                <option value="test" selected>Test Data</option>
-                                <option value="live">Live Data</option>
-                            </select>
-                        </div>
-                    </div>
+            // Set version in debug bar (with commit hash if available)
+            const versionEl = document.getElementById('app-version');
+            if (versionEl) {
+                // Fetch commit hash from API or use placeholder
+                try {
+                    const response = await fetch('/api/info');
+                    const info = await response.json();
+                    if (info.commit) {
+                        versionEl.textContent = `${APP_VERSION}-${info.commit}`;
+                    } else {
+                        versionEl.textContent = APP_VERSION;
+                    }
+                } catch (e) {
+                    versionEl.textContent = APP_VERSION;
+                }
+            }
 
-                    <!-- Left Sidebar Attack Feed -->
-                    <div class="attack-sidebar" id="attack-sidebar">
-                        <div class="sidebar-header">
-                            <h2>🔴 Attack Feed</h2>
-                            <button id="pause-feed" class="btn btn-small">⏸</button>
-                        </div>
-                        <div class="sidebar-content" id="feed-content">
-                            <!-- Attack items will be dynamically added here -->
-                        </div>
-                    </div>
-
-                    <!-- Map Container -->
-                    <div id="map-container">
-                        <div id="globeViz"></div>
-
-                        <!-- Loading indicator -->
-                        <div id="loading" class="loading">
-                            <div class="spinner"></div>
-                            <p>Loading threat data...</p>
-                        </div>
-
-                        <!-- Legend -->
-                        <div class="legend">
-                            <h3>Attack Categories</h3>
-                            <div class="legend-item clickable" data-category="Infiltration Attempts">
-                                <span class="legend-color" style="background: #ff4444;"></span>
-                                <span class="legend-text">Infiltration Attempts</span>
-                                <span class="legend-count" id="count-infiltration-attempts">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-category="Phishing Emails">
-                                <span class="legend-color" style="background: #ff9944;"></span>
-                                <span class="legend-text">Phishing Emails</span>
-                                <span class="legend-count" id="count-phishing-emails">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-category="Botnet Activity">
-                                <span class="legend-color" style="background: #ffdd44;"></span>
-                                <span class="legend-text">Botnet Activity</span>
-                                <span class="legend-count" id="count-botnet-activity">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-category="Scanning Activity">
-                                <span class="legend-color" style="background: #44ff44;"></span>
-                                <span class="legend-text">Scanning Activity</span>
-                                <span class="legend-count" id="count-scanning-activity">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-category="Antivirus Malware">
-                                <span class="legend-color" style="background: #4444ff;"></span>
-                                <span class="legend-text">Antivirus Malware</span>
-                                <span class="legend-count" id="count-antivirus-malware">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-category="Web Gateway Threats">
-                                <span class="legend-color" style="background: #ff44ff;"></span>
-                                <span class="legend-text">Web Gateway Threats</span>
-                                <span class="legend-count" id="count-web-gateway-threats">(0)</span>
-                            </div>
-
-                            <h3 style="margin-top: 15px;">Severity</h3>
-                            <div class="legend-item clickable" data-severity="low">
-                                <span class="legend-color" style="background: #666;"></span>
-                                <span class="legend-text">Low</span>
-                                <span class="legend-count" id="count-severity-low">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-severity="medium">
-                                <span class="legend-color" style="background: #ffaa00;"></span>
-                                <span class="legend-text">Medium</span>
-                                <span class="legend-count" id="count-severity-medium">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-severity="high">
-                                <span class="legend-color" style="background: #ff6600;"></span>
-                                <span class="legend-text">High</span>
-                                <span class="legend-count" id="count-severity-high">(0)</span>
-                            </div>
-                            <div class="legend-item clickable" data-severity="critical">
-                                <span class="legend-color" style="background: #ff0000;"></span>
-                                <span class="legend-text">Critical</span>
-                                <span class="legend-count" id="count-severity-critical">(0)</span>
-                            </div>
-
-                            <!-- Top 5 Attacker Locations (Moved here) -->
-                            <div id="top-attackers-list" class="attacker-list">
-                                <!-- Dynamically populated -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Debug Info Bar -->
-                    <div class="debug-bar">
-                        <span class="app-name">SOC Global Threat Visualiser</span>
-                        <span class="version">v<span id="app-version">1.2.3</span></span>
-                        <span>CSV: <span id="csv-size">0 KB</span></span>
-                        <span>Entries: <span id="csv-entries">0</span></span>
-                        <span>Updated: <span id="last-updated">--</span></span>
-                    </div>
-
-                    <!-- Attack Detail Modal -->
-                    <div id="attack-modal" class="modal hidden">
-                        <div class="modal-content">
-                            <span class="modal-close">&times;</span>
-                            <h2>Attack Details</h2>
-                            <div id="attack-details">
-                                <!-- Details will be populated dynamically -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Scripts -->
-                    <script src="js/data.js"></script>
-                    <script src="js/map.js"></script>
-                    <script src="js/ui.js"></script>
-                    <script>
-                        // Application version
-                        const APP_VERSION = '1.2.3';
-
-                        // Initialize the application
-                        document.addEventListener('DOMContentLoaded', async () => {
-                            console.log('🌐 Initializing SOC Global Threat Visualiser...');
-
-                            // Set version in debug bar
-                            const versionEl = document.getElementById('app-version');
-                            if (versionEl) versionEl.textContent = APP_VERSION;
-
-                            // Check if Globe is loaded
-                            if (typeof Globe === 'undefined') {
-                                console.error('✗ Globe.GL failed to load from CDN!');
-                                const container = document.getElementById('globeViz');
-                                if (container) {
-                                    container.innerHTML = `
+            // Check if Globe is loaded
+            const globeLoaded = typeof Globe !== 'undefined';
+            if (!globeLoaded) {
+                console.error('✗ Globe.GL failed to load from CDN!');
+                const container = document.getElementById('globeViz');
+                if (container) {
+                    container.innerHTML = `
                         <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ff4444; background: #000000; padding: 20px; text-align: center; flex-direction: column;">
                             <h2>⚠️ Failed to Load Map Library</h2>
                             <p>Globe.GL could not be loaded from the CDN.</p>
@@ -376,29 +293,66 @@
                             </button>
                         </div>
                     `;
-                                }
-                                return;
+                }
+                // Continue to load data even without globe
+            }
+
+            try {
+                // Load destination IP labels and branding
+                console.log('📋 Loading destination labels and branding...');
+                await loadDestinationLabels();
+                
+                // Load branding icon from config if available
+                try {
+                    const configResponse = await fetch('/config.json');
+                    if (configResponse.ok) {
+                        const config = await configResponse.json();
+                        if (config.branding && config.branding.icon) {
+                            const brandingIcon = document.getElementById('branding-icon');
+                            const appIcon = document.getElementById('app-icon');
+                            if (brandingIcon) {
+                                brandingIcon.src = config.branding.icon;
+                                brandingIcon.classList.remove('hidden');
+                                if (appIcon) appIcon.classList.add('hidden');
+                                console.log('🏢 Loaded branding icon:', config.branding.icon);
                             }
+                        }
+                    }
+                } catch (e) {
+                    console.log('ℹ️ Using default branding');
+                }
 
-                            try {
-                                // Initialize map first
-                                console.log('📍 Initializing map...');
-                                await initMap();
+                // Load defensive cities from config before map init
+                if (typeof loadDefensiveCitiesFromConfig === 'function') {
+                    await loadDefensiveCitiesFromConfig();
+                }
 
-                                // Initialize UI controls
-                                console.log('🎛️  Initializing UI controls...');
-                                initUI();
+                // Initialize map first (only if Globe is loaded)
+                if (globeLoaded) {
+                    console.log('📍 Initializing map...');
+                    await initMap();
+                    // Auto-rotate and Risk Focus are OFF by default
+                }
 
-                                // Start data fetching
-                                console.log('📡 Starting data fetch...');
-                                startDataFetching();
+                // Initialize UI controls
+                console.log('🎛️  Initializing UI controls...');
+                initUI();
+                
+                // Initialize data mode indicator
+                if (typeof updateDataModeIndicator === 'function') {
+                    updateDataModeIndicator();
+                }
 
-                                console.log('✅ Application initialized successfully!');
-                            } catch (error) {
-                                console.error('❌ Initialization error:', error);
-                            }
-                        });
-                    </script>
-                </body>
+                // Start data fetching
+                console.log('📡 Starting data fetch...');
+                startDataFetching();
 
-                </html>
+                console.log('✅ Application initialized successfully!');
+            } catch (error) {
+                console.error('❌ Initialization error:', error);
+            }
+        });
+    </script>
+</body>
+
+</html>

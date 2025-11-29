@@ -7,6 +7,9 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 
+// Application version - should match package.json, cli.js, and frontend
+const APP_VERSION = '1.13.0-v1';
+
 // Load configuration
 let config = {};
 try {
@@ -125,6 +128,13 @@ app.use('/api', apiLimiter, apiRoutes);
 // Apply stricter rate limiting to webhook endpoints
 app.use('/api/webhook', webhookLimiter);
 
+// Serve config.json for frontend (only destinationLabels for security)
+app.get('/config.json', (req, res) => {
+    res.json({
+        destinationLabels: config.destinationLabels || {}
+    });
+});
+
 // Root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
@@ -174,7 +184,7 @@ if (!fs.existsSync(config.data.csvPath)) {
 // Start server
 app.listen(PORT, HOST, () => {
     console.log('╔══════════════════════════════════════════════════════════╗');
-    console.log('║   SOC Global Threat Visualiser - Backend Server v1.2.2  ║');
+    console.log('║   SOC Global Threat Visualiser - Backend Server v1.4.0  ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
     console.log('');
     console.log(`🚀 Server running on http://${HOST}:${PORT}`);
