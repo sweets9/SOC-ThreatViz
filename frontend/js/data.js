@@ -4,6 +4,7 @@ let threatData = [];
 let filteredData = [];
 let currentTimeframe = '24h';
 let dataMode = 'test';  // Default to test mode
+let riskView = 'threat';  // 'threat' or 'residual'
 let isDataLoading = false;
 let dataFetchInterval = null;
 let isInitialLoad = true;  // Track if this is the first load
@@ -123,6 +124,7 @@ async function fetchThreatData() {
             });
 
             threatData = newThreatData;
+            window.threatData = threatData; // Keep global reference in sync
             applyFilters(); // Use centralized filter logic
 
             // Only hide loading on initial load
@@ -157,6 +159,22 @@ async function fetchThreatData() {
 /**
  * Apply all active filters (timeframe, category, severity, location)
  */
+/**
+ * Apply residual risk filter to threat data
+ * Residual Risk: Show only allowed threats (filter out blocked threats)
+ * When Risk Focus is ON, only threats that were NOT blocked are shown
+ */
+function applyResidualRisk(threats) {
+    if (riskView !== 'residual') return threats;
+
+    // Filter to show only allowed (not blocked) threats
+    // These represent actual residual risk that got through defenses
+    return threats.filter(threat => {
+        // blocked === false or blocked === 'false' means it was allowed
+        return threat.blocked === false || threat.blocked === 'false';
+    });
+}
+
 function applyFilters() {
     // 1. Filter by timeframe first
     const now = new Date();
@@ -164,6 +182,9 @@ function applyFilters() {
     const cutoffTime = new Date(now - timeframeMs);
 
     let tempFiltered = threatData.filter(threat => threat.timestamp >= cutoffTime);
+
+    // 1.5. Apply residual risk transformation if enabled
+    tempFiltered = applyResidualRisk(tempFiltered);
 
     // 2. Filter by Category - HIDE items in the filter set (NOT operator)
     if (activeFilters.categories.size > 0) {
@@ -189,6 +210,7 @@ function applyFilters() {
     tempFiltered.sort((a, b) => b.timestamp - a.timestamp);
 
     filteredData = tempFiltered;
+    window.filteredData = filteredData; // Keep global reference in sync
 
     updateStats();
 
@@ -203,6 +225,10 @@ function applyFilters() {
 
     if (typeof updateTopAttackers === 'function') {
         updateTopAttackers(dataForTopList);
+    }
+
+    if (typeof updateTopTargets === 'function') {
+        updateTopTargets(filteredData);
     }
 
     if (typeof updateDebugBar === 'function') {
@@ -307,15 +333,13 @@ function getArcWidth(volume) {
  */
 function updateStats() {
     const totalThreats = filteredData.length;
-    const activeThreats = filteredData.filter(t => {
-        const age = Date.now() - t.timestamp.getTime();
-        return age < 5 * 60 * 1000; // Active if within last 5 minutes
-    }).length;
     const criticalThreats = filteredData.filter(t => t.severity.toLowerCase() === 'critical').length;
 
-    document.getElementById('total-threats').textContent = totalThreats;
-    document.getElementById('active-threats').textContent = activeThreats;
-    document.getElementById('critical-threats').textContent = criticalThreats;
+    const totalEl = document.getElementById('total-threats');
+    const criticalEl = document.getElementById('critical-threats');
+
+    if (totalEl) totalEl.textContent = totalThreats;
+    if (criticalEl) criticalEl.textContent = criticalThreats;
 }
 
 /**
@@ -337,6 +361,15 @@ function setDataMode(mode) {
     updateDataModeIndicator();
     showLoading();
     fetchThreatData();
+}
+
+/**
+ * Set risk view mode
+ */
+function setRiskView(mode) {
+    riskView = mode;
+    console.log(`🎯 Risk view changed to: ${mode}`);
+    applyFilters();  // Re-apply filters with new risk view
 }
 
 /**
@@ -514,6 +547,7 @@ if (typeof window !== 'undefined') {
     window.fetchThreatData = fetchThreatData;
     window.setTimeframe = setTimeframe;
     window.setDataMode = setDataMode;
+    window.setRiskView = setRiskView;
     window.startDataFetching = startDataFetching;
     window.stopDataFetching = stopDataFetching;
     window.getCategoryColor = getCategoryColor;

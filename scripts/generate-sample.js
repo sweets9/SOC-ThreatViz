@@ -37,6 +37,60 @@ const serverTypes = [
     'Database Server'
 ];
 
+// Common services and their ports - port and service name are always aligned
+const services = [
+    { port: 22, name: 'SSH' },
+    { port: 23, name: 'Telnet' },
+    { port: 25, name: 'SMTP' },
+    { port: 53, name: 'DNS' },
+    { port: 80, name: 'HTTP' },
+    { port: 110, name: 'POP3' },
+    { port: 143, name: 'IMAP' },
+    { port: 443, name: 'HTTPS' },
+    { port: 445, name: 'SMB' },
+    { port: 993, name: 'IMAPS' },
+    { port: 995, name: 'POP3S' },
+    { port: 1433, name: 'MSSQL' },
+    { port: 1521, name: 'Oracle' },
+    { port: 3306, name: 'MySQL' },
+    { port: 3389, name: 'RDP' },
+    { port: 5432, name: 'PostgreSQL' },
+    { port: 5900, name: 'VNC' },
+    { port: 6379, name: 'Redis' },
+    { port: 8080, name: 'HTTP-Proxy' },
+    { port: 8443, name: 'HTTPS-Alt' },
+    { port: 27017, name: 'MongoDB' }
+];
+
+// Helper function to get service by port (ensures alignment)
+function getServiceByPort(port) {
+    return services.find(s => s.port === port) || { port: port, name: `Port ${port}` };
+}
+
+// Email addresses with associated locations (for phishing/email threats)
+const emailAddresses = [
+    { email: 'john.smith@company.com', city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093 },
+    { email: 'sarah.jones@company.com', city: 'Melbourne', country: 'Australia', lat: -37.8136, lon: 144.9631 },
+    { email: 'michael.brown@company.com', city: 'Brisbane', country: 'Australia', lat: -27.4698, lon: 153.0251 },
+    { email: 'emily.davis@company.com', city: 'Perth', country: 'Australia', lat: -31.9505, lon: 115.8605 },
+    { email: 'david.wilson@company.com', city: 'Adelaide', country: 'Australia', lat: -34.9285, lon: 138.6007 },
+    { email: 'lisa.anderson@company.com', city: 'Canberra', country: 'Australia', lat: -35.2809, lon: 149.1300 },
+    { email: 'james.taylor@company.com', city: 'Hobart', country: 'Australia', lat: -42.8821, lon: 147.3272 },
+    { email: 'jennifer.martin@company.com', city: 'Darwin', country: 'Australia', lat: -12.4634, lon: 130.8456 },
+    { email: 'robert.thomas@company.com', city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093 },
+    { email: 'patricia.jackson@company.com', city: 'Melbourne', country: 'Australia', lat: -37.8136, lon: 144.9631 },
+    { email: 'william.white@company.com', city: 'Brisbane', country: 'Australia', lat: -27.4698, lon: 153.0251 },
+    { email: 'linda.harris@company.com', city: 'Perth', country: 'Australia', lat: -31.9505, lon: 115.8605 },
+    { email: 'richard.clark@company.com', city: 'Adelaide', country: 'Australia', lat: -34.9285, lon: 138.6007 },
+    { email: 'barbara.lewis@company.com', city: 'Canberra', country: 'Australia', lat: -35.2809, lon: 149.1300 },
+    { email: 'joseph.robinson@company.com', city: 'Hobart', country: 'Australia', lat: -42.8821, lon: 147.3272 },
+    { email: 'susan.walker@company.com', city: 'Darwin', country: 'Australia', lat: -12.4634, lon: 130.8456 },
+    { email: 'thomas.young@company.com', city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093 },
+    { email: 'jessica.king@company.com', city: 'Melbourne', country: 'Australia', lat: -37.8136, lon: 144.9631 },
+    { email: 'charles.wright@company.com', city: 'Brisbane', country: 'Australia', lat: -27.4698, lon: 153.0251 },
+    { email: 'sarah.lopez@company.com', city: 'Perth', country: 'Australia', lat: -31.9505, lon: 115.8605 }
+];
+
 // Generate destination labels mapping
 function generateDestinationLabels() {
     const labels = {};
@@ -266,10 +320,13 @@ function randomVolume() {
 
 /**
  * Generate random timestamp within the last N hours
+ * Distributed across the time range
  */
 function randomTimestamp(hoursAgo) {
-    const now = new Date();
-    const pastTime = now.getTime() - (Math.random() * hoursAgo * 60 * 60 * 1000);
+    const now = Date.now();
+    const hoursAgoMs = hoursAgo * 60 * 60 * 1000;
+    const randomOffset = Math.random() * hoursAgoMs;
+    const pastTime = now - randomOffset;
     return new Date(pastTime).toISOString();
 }
 
@@ -289,14 +346,55 @@ function generateThreat(hoursAgo = 24) {
     // Select source location (any global location)
     const source = randomElement(threatSources);
 
-    // Select destination (80% Australian sites with structured IPs, 20% other locations)
-    const isAustralianDest = Math.random() < 0.8;
-    const dest = isAustralianDest ?
-        randomElement(australianSites) :
-        randomElement(threatSources);
+    // Select destination - ONLY defensive (Australian) sites
+    const dest = randomElement(australianSites);
 
-    // Generate destination IP (structured for Australian, random for others)
-    const destinationip = isAustralianDest ? generateDestinationIP(dest) : randomIP();
+    // Determine if blocked or allowed based on severity
+    // Low severity: 50% allowed, 50% blocked
+    // Other severities: 95% blocked, 5% allowed
+    let blocked;
+    if (severity === 'low') {
+        blocked = Math.random() < 0.5 ? 'true' : 'false';  // 50% blocked, 50% allowed
+    } else {
+        blocked = Math.random() < 0.95 ? 'true' : 'false';  // 95% blocked, 5% allowed
+    }
+
+    // Determine if this is an email-based threat (for Phishing Emails category)
+    // For phishing emails, randomly use email addresses (80% chance) or IP addresses (20% chance)
+    const isEmailThreat = category === 'Phishing Emails' && Math.random() < 0.8; // 80% of phishing use emails
+    
+    let destinationip, destinationlocation, destinationcity, destinationcountry, destinationport, destinationservice;
+    
+    if (isEmailThreat) {
+        // Use email address as target for phishing emails
+        const emailTarget = randomElement(emailAddresses);
+        destinationip = emailTarget.email;
+        destinationlocation = `${emailTarget.lat},${emailTarget.lon}`;
+        destinationcity = emailTarget.city;
+        destinationcountry = emailTarget.country;
+        // Email threats typically use SMTP (port 25) or IMAP/POP3 - randomly select
+        const emailServices = [
+            { port: 25, name: 'SMTP' },
+            { port: 143, name: 'IMAP' },
+            { port: 110, name: 'POP3' },
+            { port: 993, name: 'IMAPS' },
+            { port: 995, name: 'POP3S' }
+        ];
+        const emailService = randomElement(emailServices);
+        destinationport = emailService.port;
+        destinationservice = emailService.name;
+    } else {
+        // Use IP address as target (for non-phishing or phishing that didn't get email)
+        destinationip = generateDestinationIP(dest);
+        destinationlocation = `${dest.lat},${dest.lon}`;
+        destinationcity = dest.city;
+        destinationcountry = dest.country;
+        // Always generate a service/port - randomly select from available services
+        // Ensure service name matches port
+        const service = randomElement(services);
+        destinationport = service.port;
+        destinationservice = service.name;
+    }
 
     // Generate threat
     const threat = {
@@ -307,14 +405,16 @@ function generateThreat(hoursAgo = 24) {
         sourcecity: source.city,
         sourcecountry: source.country,
         destinationip: destinationip,
-        destinationlocation: `${dest.lat},${dest.lon}`,
-        destinationcity: dest.city,
-        destinationcountry: dest.country,
+        destinationlocation: destinationlocation,
+        destinationcity: destinationcity,
+        destinationcountry: destinationcountry,
+        destinationport: destinationport,
+        destinationservice: destinationservice,
         volume: randomVolume(),
         severity: severity,
         category: category,
         detectionsource: randomElement(detectionSources),
-        blocked: Math.random() < 0.95 ? 'true' : 'false'  // 95% blocked, 5% allowed
+        blocked: blocked
     };
 
     return threat;
@@ -322,44 +422,64 @@ function generateThreat(hoursAgo = 24) {
 
 /**
  * Generate CSV content with realistic severity distribution
- * Per 24h period: only 1 critical, 2 high, rest medium/low/informational
+ * Per 24h period: 2-5 critical, 3-6 high (randomized), rest medium/low
+ * At least 1 critical and 1 high must be allowed (unblocked) per day for testing
  */
 function generateCSV(count, hoursAgo = 168) {
-    const header = 'timestamp,eventname,sourceip,sourcelocation,sourcecity,sourcecountry,destinationip,destinationlocation,destinationcity,destinationcountry,volume,severity,category,detectionsource,blocked\n';
+    const header = 'timestamp,eventname,sourceip,sourcelocation,sourcecity,sourcecountry,destinationip,destinationlocation,destinationcity,destinationcountry,destinationport,destinationservice,volume,severity,category,detectionsource,blocked\n';
 
     let csv = header;
 
     // Calculate how many 24h periods we have
     const numDays = Math.ceil(hoursAgo / 24);
 
-    // Track severity counts per day
+    // Track severity counts and limits per day (randomized limits)
     const dailySeverityCounts = {};
     for (let day = 0; day < numDays; day++) {
-        dailySeverityCounts[day] = { critical: 0, high: 0 };
+        dailySeverityCounts[day] = {
+            critical: 0,
+            high: 0,
+            criticalUnblocked: 0,
+            highUnblocked: 0,
+            // Random limits: 2-5 critical, 3-6 high per day
+            criticalLimit: Math.floor(Math.random() * 4) + 2,  // 2-5
+            highLimit: Math.floor(Math.random() * 4) + 3       // 3-6
+        };
     }
 
     for (let i = 0; i < count; i++) {
         const threat = generateThreat(hoursAgo);
 
         // Calculate which day this threat falls into
-        const hoursFromNow = parseFloat(threat.timestamp.slice(0, -1).split('T').join(' ').split(':').slice(0, 2).join(':'));
         const threatTime = new Date(threat.timestamp);
         const now = new Date();
         const hoursAgoThreat = (now - threatTime) / (1000 * 60 * 60);
         const day = Math.floor(hoursAgoThreat / 24);
 
-        // Enforce severity limits per day
+        // Enforce severity limits per day (randomized)
         if (threat.severity === 'critical') {
-            if (dailySeverityCounts[day]?.critical >= 1) {
+            if (dailySeverityCounts[day]?.critical >= dailySeverityCounts[day]?.criticalLimit) {
                 threat.severity = 'medium';  // Downgrade to medium
             } else if (dailySeverityCounts[day]) {
                 dailySeverityCounts[day].critical++;
+
+                // Ensure at least 1 unblocked critical per day for Risk Focus testing
+                if (dailySeverityCounts[day].criticalUnblocked === 0) {
+                    threat.blocked = 'false';  // Force unblocked
+                    dailySeverityCounts[day].criticalUnblocked++;
+                }
             }
         } else if (threat.severity === 'high') {
-            if (dailySeverityCounts[day]?.high >= 2) {
+            if (dailySeverityCounts[day]?.high >= dailySeverityCounts[day]?.highLimit) {
                 threat.severity = 'medium';  // Downgrade to medium
             } else if (dailySeverityCounts[day]) {
                 dailySeverityCounts[day].high++;
+
+                // Ensure at least 1 unblocked high per day for Risk Focus testing
+                if (dailySeverityCounts[day].highUnblocked === 0) {
+                    threat.blocked = 'false';  // Force unblocked
+                    dailySeverityCounts[day].highUnblocked++;
+                }
             }
         }
 
@@ -375,6 +495,8 @@ function generateCSV(count, hoursAgo = 168) {
             `"${threat.destinationlocation}"`,
             `"${threat.destinationcity}"`,
             `"${threat.destinationcountry}"`,
+            threat.destinationport,
+            threat.destinationservice,
             threat.volume,
             threat.severity,
             `"${threat.category}"`,
@@ -434,9 +556,11 @@ async function main() {
 
     // Parse command line arguments
     const args = process.argv.slice(2);
-    const count = args[0] ? parseInt(args[0], 10) : 500;
-    const hoursAgo = args[1] ? parseInt(args[1], 10) : 168; // Default: 7 days
     const skipPrompt = args.includes('--yes') || args.includes('-y');
+    // Filter out flags to get numeric arguments
+    const numericArgs = args.filter(a => !a.startsWith('-'));
+    const count = numericArgs[0] ? parseInt(numericArgs[0], 10) : 2000;
+    const hoursAgo = numericArgs[1] ? parseInt(numericArgs[1], 10) : 168; // Default: 7 days
 
     // Show IP structure info
     console.log('Destination IP Structure:');

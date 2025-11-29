@@ -27,7 +27,58 @@
     "centerLat": -25,
     "centerLon": 133,
     "autoRotate": false,
-    "rotateInterval": 60000
+    "rotateInterval": 60000,
+    "arcDisplayPercentage": 100,
+    "defensiveCities": [
+      {
+        "name": "Adelaide",
+        "lat": -34.9285,
+        "lng": 138.6007,
+        "size": 0.8
+      },
+      {
+        "name": "Melbourne",
+        "lat": -37.8136,
+        "lng": 144.9631,
+        "size": 0.8
+      },
+      {
+        "name": "Sydney",
+        "lat": -33.8688,
+        "lng": 151.2093,
+        "size": 0.6
+      },
+      {
+        "name": "Brisbane",
+        "lat": -27.4698,
+        "lng": 153.0251,
+        "size": 0.6
+      },
+      {
+        "name": "Perth",
+        "lat": -31.9505,
+        "lng": 115.8605,
+        "size": 0.6
+      },
+      {
+        "name": "Canberra",
+        "lat": -35.2809,
+        "lng": 149.13,
+        "size": 0.5
+      },
+      {
+        "name": "Hobart",
+        "lat": -42.8821,
+        "lng": 147.3272,
+        "size": 0.5
+      },
+      {
+        "name": "Darwin",
+        "lat": -12.4634,
+        "lng": 130.8456,
+        "size": 0.5
+      }
+    ]
   },
   "branding": {
     "icon": "",

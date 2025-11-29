@@ -2,21 +2,52 @@
 // Using Globe.GL with 3D globe visualization
 
 let globe = null;
-let isAutoRotate = false;
-let isAutoFocus = false;
-let autoFocusInterval = null;
-let isFocusMode = false;  // True when showing only critical/high
+let isAutoRotate = true;  // Enabled by default
+let isAutoFocus = false;   // Disabled by default - Risk Focus toggle
 let rotateInterval = null;
 let currentArcs = [];
 let hitRingsQueue = [];  // Queue for hit animations
+let highlightedArcIndex = null;  // Track which arc is currently highlighted
 
-// Auto Focus configuration
-const AUTO_FOCUS_CONFIG = {
-    focusDuration: 15000,  // Show only critical/high for 15 seconds
-    normalDuration: 5000,  // Show all for 5 seconds
-    focusArcMultiplier: 2.5,  // Make focused arcs larger
-    fadeOpacity: 0.15  // Opacity for faded low/medium arcs
-};
+// Risk Focus: When ON shows only residual risk (allowed threats), when OFF shows all threats
+
+// Defensive cities - loaded from config or use defaults
+let DEFENSIVE_CITIES = [
+    { name: 'Adelaide', lat: -34.9285, lng: 138.6007, size: 0.8 },
+    { name: 'Melbourne', lat: -37.8136, lng: 144.9631, size: 0.8 },
+    { name: 'Sydney', lat: -33.8688, lng: 151.2093, size: 0.6 },
+    { name: 'Brisbane', lat: -27.4698, lng: 153.0251, size: 0.6 },
+    { name: 'Perth', lat: -31.9505, lng: 115.8605, size: 0.6 },
+    { name: 'Canberra', lat: -35.2809, lng: 149.1300, size: 0.5 },
+    { name: 'Hobart', lat: -42.8821, lng: 147.3272, size: 0.5 },
+    { name: 'Darwin', lat: -12.4634, lng: 130.8456, size: 0.5 }
+];
+
+// Legacy getter for backwards compatibility (returns current DEFENSIVE_CITIES)
+function getDefensiveCities() {
+    return DEFENSIVE_CITIES;
+}
+
+// Load defensive cities and map config from config.json
+async function loadDefensiveCitiesFromConfig() {
+    try {
+        const response = await fetch('/config.json');
+        if (response.ok) {
+            const config = await response.json();
+            if (config.map && config.map.defensiveCities && Array.isArray(config.map.defensiveCities)) {
+                DEFENSIVE_CITIES = config.map.defensiveCities;
+                console.log('📍 Loaded defensive cities from config:', DEFENSIVE_CITIES.length);
+            }
+            // Load arc display percentage from config
+            if (config.map && config.map.arcDisplayPercentage !== undefined) {
+                MAP_CONFIG.arcDisplayPercentage = config.map.arcDisplayPercentage;
+                console.log(`📍 Loaded arc display percentage from config: ${MAP_CONFIG.arcDisplayPercentage}%`);
+            }
+        }
+    } catch (e) {
+        console.log('ℹ️ Using default defensive cities and arc display percentage');
+    }
+}
 
 // Map configuration
 const MAP_CONFIG = {
@@ -28,6 +59,8 @@ const MAP_CONFIG = {
     arcDuration: 4000,  // Normal speed: 4 seconds (in ms)
     arcStagger: 200,    // Normal stagger: 200ms
     maxArcsDisplayed: 50,
+    attackerCitiesToShow: 20,  // Number of attacker cities to show on map
+    arcDisplayPercentage: 100,  // Percentage of arcs to display (25, 50, or 100)
 
     // Speed presets
     speeds: {
@@ -36,6 +69,13 @@ const MAP_CONFIG = {
         fast: { duration: 2000, stagger: 100 }
     },
     currentSpeed: 'normal'
+};
+
+// Current arc display stats (for debug console)
+let arcDisplayStats = {
+    total: 0,
+    displayed: 0,
+    percentage: 100
 };
 
 /**
@@ -63,15 +103,6 @@ function calculateArcStroke(threat) {
     return baseWidth * multiplier;
 }
 
-// Australian major cities for labels
-const AUSTRALIAN_CITIES = [
-    { name: 'Sydney', lat: -33.8688, lng: 151.2093 },
-    { name: 'Melbourne', lat: -37.8136, lng: 144.9631 },
-    { name: 'Brisbane', lat: -27.4698, lng: 153.0251 },
-    { name: 'Perth', lat: -31.9505, lng: 115.8605 },
-    { name: 'Adelaide', lat: -34.9285, lng: 138.6007 },
-    { name: 'Canberra', lat: -35.2809, lng: 149.1300 }
-];
 
 /**
  * Convert hex color to RGB string for rgba() usage
@@ -105,11 +136,6 @@ function initMap() {
 
                 // Arc configuration with dash animation
                 .arcLabel(d => {
-                    // Show more info during focus mode for critical/high
-                    const severity = (d.threat.severity || 'medium').toLowerCase();
-                    if (isFocusMode && (severity === 'critical' || severity === 'high')) {
-                        return `${d.threat.eventname}\n${d.threat.sourcename || 'Unknown'} → ${d.threat.destinationname || 'Unknown'}`;
-                    }
                     return d.threat.eventname;
                 })
                 .arcStartLat(d => d.threat.sourcelat)
@@ -120,7 +146,7 @@ function initMap() {
                 .arcDashGap(0.2)      // Smaller gap for more continuous look
                 .arcDashInitialGap(() => Math.random())  // Random start position
                 .arcDashAnimateTime(() => MAP_CONFIG.arcDuration)  // Animation speed
-                .arcColor(d => {
+                .arcColor((d, i) => {
                     // Use severity-based coloring for clearer threat visualization
                     const severity = (d.threat.severity || 'medium').toLowerCase();
                     const severityColors = {
@@ -130,7 +156,21 @@ function initMap() {
                         'low': '#888888'        // Gray
                     };
                     const color = severityColors[severity] || '#ffaa00';
-                    
+
+                    // Check if this arc is highlighted
+                    const isHighlighted = highlightedArcIndex !== null && highlightedArcIndex === i;
+                    const someArcHighlighted = highlightedArcIndex !== null;
+
+                    if (isHighlighted) {
+                        // Make highlighted arc fully opaque and brighter
+                        return [`rgba(${hexToRgb(color)}, 1.0)`, `rgba(${hexToRgb(color)}, 1.0)`];
+                    }
+
+                    // If another arc is highlighted, fade this one significantly
+                    if (someArcHighlighted && !isHighlighted) {
+                        return [`rgba(${hexToRgb(color)}, 0.1)`, `rgba(${hexToRgb(color)}, 0.05)`];
+                    }
+
                     // Opacity based on severity and focus mode
                     let alphaMap = {
                         'critical': 0.9,
@@ -138,47 +178,30 @@ function initMap() {
                         'medium': 0.5,
                         'low': 0.4
                     };
-                    
-                    // In focus mode, fade out low/medium and boost critical/high
-                    if (isFocusMode) {
-                        if (severity === 'critical' || severity === 'high') {
-                            alphaMap = { 'critical': 1.0, 'high': 0.9, 'medium': 0.5, 'low': 0.4 };
-                        } else {
-                            // Fade out low and medium
-                            return [`rgba(${hexToRgb(color)}, ${AUTO_FOCUS_CONFIG.fadeOpacity})`, `rgba(${hexToRgb(color)}, ${AUTO_FOCUS_CONFIG.fadeOpacity * 0.5})`];
-                        }
-                    }
-                    
+
                     const alpha = alphaMap[severity] || 0.5;
                     return [`rgba(${hexToRgb(color)}, ${alpha})`, `rgba(${hexToRgb(color)}, ${alpha * 0.7})`];
                 })
-                .arcStroke(d => {
+                .arcStroke((d, i) => {
                     const baseStroke = calculateArcStroke(d.threat);
-                    const severity = (d.threat.severity || 'medium').toLowerCase();
-                    
-                    // In focus mode, make critical/high arcs larger
-                    if (isFocusMode && (severity === 'critical' || severity === 'high')) {
-                        return baseStroke * AUTO_FOCUS_CONFIG.focusArcMultiplier;
+
+                    // Check if this arc is highlighted
+                    const isHighlighted = highlightedArcIndex !== null && highlightedArcIndex === i;
+
+                    if (isHighlighted) {
+                        // Make highlighted arc wider
+                        return baseStroke * 2.5;
                     }
-                    // In focus mode, make low/medium arcs smaller
-                    if (isFocusMode && (severity === 'low' || severity === 'medium')) {
-                        return baseStroke * 0.3;
-                    }
+
                     return baseStroke;
                 })
                 .arcAltitude(d => {
                     // Height based on volume (higher volume = higher arc)
                     const volume = d.threat.volume || 50;
-                    const severity = (d.threat.severity || 'medium').toLowerCase();
-                    let baseAltitude = 0.15 + (volume / 100) * 0.25;
-                    
-                    // In focus mode, raise critical/high arcs higher
-                    if (isFocusMode && (severity === 'critical' || severity === 'high')) {
-                        baseAltitude *= 1.5;
-                    }
-                    return baseAltitude;
+                    // Increased minimum altitude from 0.15 to 0.25 to prevent clipping
+                    return 0.25 + (volume / 100) * 0.3;
                 })
-                .arcAltitudeAutoScale(0.4)
+                .arcAltitudeAutoScale(0.3)
                 .arcsTransitionDuration(1000)  // 1 second smooth fade transition
 
                 // Ring configuration for hit animations
@@ -199,38 +222,75 @@ function initMap() {
                     };
                     return colors[severity] || '#ff4444';
                 })
-                .pointAltitude(0.01)
-                .pointRadius(d => d.type === 'destination' ? 0.4 : 0.2)
-                .pointsMerge(true)
+                .pointAltitude(0.005)
+                .pointRadius(d => d.type === 'destination' ? 0.3 : 0.25)
+                .pointsMerge(false)
 
-                // Label configuration for Australian cities (smaller font)
-                .labelsData(AUSTRALIAN_CITIES)
+                // Label configuration for defensive cities (loaded from config)
+                .labelsData(DEFENSIVE_CITIES)
                 .labelLat(d => d.lat)
                 .labelLng(d => d.lng)
                 .labelText(d => d.name)
-                .labelSize(0.8)  // Smaller labels
+                .labelSize(d => d.size)  // Variable label sizes
                 .labelDotRadius(0.3)
-                .labelColor(() => 'var(--theme-primary, #dc143c)')  // Use theme color instead of cyan
+                .labelColor(() => '#00aaff')  // Blue for Australian destination cities
                 .labelResolution(2)
                 .labelAltitude(0.01)
 
-                // Click handler
-                .onArcClick((arc) => {
-                    if (arc && arc.threat && typeof showAttackDetails === 'function') {
-                        showAttackDetails(arc.threat);
-                    }
-                })
+                // Click handlers for points and labels
                 .onPointClick((point) => {
-                    if (point && point.threat && typeof showAttackDetails === 'function') {
-                        showAttackDetails(point.threat);
+                    if (point && point.threat) {
+                        // Get the correct city name based on point type
+                        const cityName = point.type === 'source' 
+                            ? point.threat.sourcecity 
+                            : point.threat.destinationcity;
+                        if (cityName && typeof getAttacksByCity === 'function' && typeof showCityAttacks === 'function') {
+                            const cityAttacks = getAttacksByCity(cityName);
+                            const type = point.type === 'destination' ? 'destination' : 'source';
+                            // Always show modal, even if empty
+                            showCityAttacks(cityName, cityAttacks, type);
+                        }
                     }
                 })
                 .onLabelClick((label) => {
-                    // Make cities clickable - show attacks to that city
-                    if (label && label.name) {
-                        const cityAttacks = getAttacksByCity(label.name);
-                        if (cityAttacks.length > 0) {
-                            showCityAttacks(label.name, cityAttacks, 'destination');
+                    // Make cities clickable - show attacks to/from that city
+                    console.log('🏙️ Label clicked:', label);
+
+                    if (!label || !label.name) {
+                        console.error('Invalid label object:', label);
+                        return;
+                    }
+
+                    console.log(`Attempting to fetch attacks for city: ${label.name}`);
+
+                    if (typeof getAttacksByCity !== 'function') {
+                        console.error('❌ getAttacksByCity is not defined');
+                        console.log('Available window functions:', Object.keys(window).filter(k => k.includes('Attack') || k.includes('City')));
+                        return;
+                    }
+
+                    if (typeof showCityAttacks !== 'function') {
+                        console.error('❌ showCityAttacks is not defined');
+                        return;
+                    }
+
+                    const cityAttacks = getAttacksByCity(label.name);
+                    console.log(`✓ Found ${cityAttacks.length} attacks for ${label.name}`);
+
+                    if (cityAttacks.length > 0) {
+                        // Determine if this is a source or destination city
+                        // Australian cities are destinations, others are sources
+                        const isAustralianCity = DEFENSIVE_CITIES.some(c => c.name === label.name);
+                        const type = isAustralianCity ? 'destination' : 'source';
+                        console.log(`Showing ${type} attacks for ${label.name}`);
+                        showCityAttacks(label.name, cityAttacks, type);
+                    } else {
+                        console.warn(`⚠️ No attacks found for ${label.name}`);
+                        // Show modal anyway with empty message
+                        if (typeof showCityAttacks === 'function') {
+                            const isAustralianCity = DEFENSIVE_CITIES.some(c => c.name === label.name);
+                            const type = isAustralianCity ? 'destination' : 'source';
+                            showCityAttacks(label.name, [], type);
                         }
                     }
                 });
@@ -244,10 +304,17 @@ function initMap() {
 
             // Configure controls
             globe.controls().enableZoom = true;
-            globe.controls().autoRotate = false;
+            globe.controls().autoRotate = isAutoRotate;  // Use default value (true)
             globe.controls().autoRotateSpeed = MAP_CONFIG.rotationSpeed;
 
             console.log('✓ Map initialized successfully with Globe.GL (3D Globe mode)');
+            
+            // Enable auto-rotate by default if it's set to true
+            if (isAutoRotate) {
+                startAutoRotation();
+                updateRotateButton();
+            }
+            
             resolve();
         } catch (error) {
             console.error('✗ Error initializing map:', error);
@@ -272,8 +339,29 @@ function updateMapData(threats) {
     // Filtering is now done in data.js, so we use threats directly (which is filteredData)
     const visibleThreats = threats;
 
-    // Limit the number of displayed arcs
-    const displayThreats = visibleThreats.slice(0, MAP_CONFIG.maxArcsDisplayed);
+    // Apply arc display percentage
+    const totalThreats = visibleThreats.length;
+    const percentage = MAP_CONFIG.arcDisplayPercentage || 100;
+    const displayCount = Math.floor(totalThreats * (percentage / 100));
+    const displayThreats = visibleThreats.slice(0, displayCount);
+    
+    // Update stats for debug console
+    arcDisplayStats = {
+        total: totalThreats,
+        displayed: displayThreats.length,
+        percentage: percentage
+    };
+    
+    // Update global reference for debug console
+    if (typeof window !== 'undefined') {
+        window.arcDisplayStats = arcDisplayStats;
+    }
+    
+    if (displayThreats.length < totalThreats) {
+        console.log(`⚠️ Displaying ${displayThreats.length} of ${totalThreats} threats as arcs (${percentage}%)`);
+    } else {
+        console.log(`✓ Displaying all ${displayThreats.length} threats as arcs (${percentage}%)`);
+    }
 
     // Convert threats to arc data format
     const arcs = displayThreats.map(threat => ({
@@ -309,73 +397,201 @@ function updateMapData(threats) {
     // Update points data with smooth transition
     globe.pointsData(points);
 
-    // Add hit animation rings at destinations (for high/critical threats)
-    const rings = displayThreats
-        .filter(t => t.severity.toLowerCase() === 'critical' || t.severity.toLowerCase() === 'high')
-        .slice(0, 10)  // Limit to 10 rings for performance
-        .map(threat => ({
-            lat: threat.destlat,
-            lng: threat.destlon,
-            maxR: threat.severity.toLowerCase() === 'critical' ? 4 : 2,
-            propagationSpeed: 3,
-            repeatPeriod: threat.severity.toLowerCase() === 'critical' ? 600 : 1000
-        }));
+    // Schedule single shockwave effects to trigger when arcs arrive at destination
+    // Clear any existing ring timers
+    if (window.ringTimers) {
+        window.ringTimers.forEach(timer => clearTimeout(timer));
+    }
+    window.ringTimers = [];
 
-    globe.ringsData(rings);
+    // Start with no rings
+    globe.ringsData([]);
+
+    // For each threat, schedule a ring to appear after arc duration
+    displayThreats
+        .filter(t => {
+            const sev = t.severity.toLowerCase();
+            return sev === 'critical' || sev === 'high' || sev === 'medium';
+        })
+        .slice(0, 15)  // Limit to 15 rings for performance
+        .forEach((threat, index) => {
+            const sev = threat.severity.toLowerCase();
+            let maxR, speed;
+
+            if (sev === 'critical') {
+                maxR = 5;
+                speed = 4;
+            } else if (sev === 'high') {
+                maxR = 3;
+                speed = 3;
+            } else { // medium
+                maxR = 2;
+                speed = 2;
+            }
+
+            // Calculate actual arc travel distance in degrees
+            const distance = calculateArcDistance(
+                threat.sourcelat, threat.sourcelon,
+                threat.destlat, threat.destlon
+            );
+
+            // Globe.GL arc duration is proportional to distance
+            // Base duration from config, scaled by normalized distance
+            // Typical max distance on globe is ~180 degrees (half circumference)
+            const normalizedDistance = Math.min(distance / 180, 1.0);
+            const calculatedArcDuration = MAP_CONFIG.arcDuration * (0.5 + normalizedDistance * 0.5);
+
+            // Schedule ring to appear when arc arrives
+            // Add stagger based on index to spread out the effects
+            const arcArrivalTime = calculatedArcDuration + (index * MAP_CONFIG.arcStagger);
+
+            const timer = setTimeout(() => {
+                const currentRings = globe.ringsData() || [];
+                const newRing = {
+                    lat: threat.destlat,
+                    lng: threat.destlon,
+                    maxR: maxR,
+                    propagationSpeed: speed,
+                    repeatPeriod: 99999999  // Very long period = shows once
+                };
+
+                // Add ring
+                globe.ringsData([...currentRings, newRing]);
+
+                // Remove ring after it completes (maxR / speed * 1000ms)
+                const ringDuration = (maxR / speed) * 1000;
+                setTimeout(() => {
+                    const rings = globe.ringsData() || [];
+                    const filtered = rings.filter(r =>
+                        r.lat !== newRing.lat ||
+                        r.lng !== newRing.lng ||
+                        r.maxR !== newRing.maxR
+                    );
+                    globe.ringsData(filtered);
+                }, ringDuration);
+            }, arcArrivalTime);
+
+            window.ringTimers.push(timer);
+        });
 
     // Update map labels for top source cities
     updateMapLabels(threats);
 
-    console.log(`✓ Displayed ${arcs.length} attack arcs, ${points.length} markers, ${rings.length} hit rings`);
+    console.log(`✓ Displayed ${arcs.length} attack arcs, ${points.length} markers`);
 }
 
 /**
- * Update map labels for top 10 source cities
+ * Calculate distance between two points in degrees (simple approximation)
+ */
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2));
+}
+
+/**
+ * Calculate arc distance using Haversine formula (great circle distance)
+ * Returns distance in degrees (0-180)
+ */
+function calculateArcDistance(lat1, lng1, lat2, lng2) {
+    const toRad = deg => deg * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    // Convert radians back to degrees
+    return c * 180 / Math.PI;
+}
+
+/**
+ * Adjust overlapping labels by filtering out nearby duplicates
+ * Keeps the label with higher priority (more attacks)
+ */
+function deduplicateNearbyLabels(labels, minDistance = 3) {
+    const filtered = [];
+    const sorted = [...labels].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+    for (const label of sorted) {
+        // Check if this label is too close to any already accepted label
+        const tooClose = filtered.some(existing =>
+            calculateDistance(label.lat, label.lng, existing.lat, existing.lng) < minDistance
+        );
+
+        if (!tooClose) {
+            filtered.push(label);
+        }
+    }
+
+    return filtered;
+}
+
+/**
+ * Update map labels for top N source cities (based on config)
  */
 function updateMapLabels(threats) {
     if (!globe) return;
 
-    // Group by source location
+    // Group by source city (use sourcecity for matching with getAttacksByCity)
     const locationCounts = {};
     threats.forEach(t => {
-        // Use sourcename if available (City, Country), otherwise fallback to coords
-        const locKey = t.sourcename || `${t.sourcelat},${t.sourcelon}`;
+        // Use sourcecity for the label name (matches getAttacksByCity search)
+        const cityName = t.sourcecity || 'Unknown';
+        const locKey = `${cityName}|${t.sourcelat}|${t.sourcelon}`;
 
         if (!locationCounts[locKey]) {
             locationCounts[locKey] = {
                 count: 0,
                 lat: t.sourcelat,
                 lng: t.sourcelon,
-                name: locKey
+                name: cityName  // Use just city name for click matching
             };
         }
         locationCounts[locKey].count++;
     });
 
-    // Sort by count and take top 10
+    // Sort by count and take top N (from config)
+    const numCities = MAP_CONFIG.attackerCitiesToShow || 10;
     const topLocations = Object.values(locationCounts)
         .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
+        .slice(0, numCities);
 
     // Combine with static Australian cities
-    // We want to keep Australian cities always visible as they are destinations?
-    // Or just show top sources? The requirement says "Top 10 source cities".
-    // I'll merge them but maybe prioritize source cities.
+    // Australian cities get highest priority (always shown)
+    const australianLabels = DEFENSIVE_CITIES.map(c => ({
+        name: c.name,
+        lat: c.lat,
+        lng: c.lng,
+        color: '#00aaff', // Blue for Australian destination cities
+        size: c.size,  // Use individual city size
+        priority: 1000000 // Highest priority
+    }));
 
-    const labels = [
-        ...AUSTRALIAN_CITIES.map(c => ({ ...c, color: '#dc143c', size: 0.8 })), // Theme color for AU cities
-        ...topLocations.map(l => ({
-            name: l.name,
-            lat: l.lat,
-            lng: l.lng,
-            color: '#ff4444', // Red for attackers
-            size: 1.0
-        }))
-    ];
+    const attackerLabels = topLocations.map(l => ({
+        name: l.name,
+        lat: l.lat,
+        lng: l.lng,
+        color: '#ff4444', // Red for attackers
+        size: 1.0,
+        priority: l.count // Priority based on attack count
+    }));
 
-    globe.labelsData(labels)
+    // Deduplicate nearby labels (keeps higher priority ones)
+    const allLabels = [...australianLabels, ...attackerLabels];
+    const filteredLabels = deduplicateNearbyLabels(allLabels, 5); // 5 degree minimum spacing
+
+    globe.labelsData(filteredLabels)
+        .labelLat(d => d.lat)
+        .labelLng(d => d.lng)
+        .labelText(d => d.name)
         .labelColor(d => d.color)
-        .labelSize(d => d.size);
+        .labelSize(d => d.size)
+        .labelDotRadius(0.3)
+        .labelResolution(2)
+        .labelAltitude(0.01);
 }
 
 /**
@@ -405,19 +621,30 @@ function updateCategoryCounts(threats) {
         }
     });
 
-    // Also update severity counts
-    const severityCounts = { low: 0, medium: 0, high: 0, critical: 0 };
+    // Update severity counts - Residual Risk (RR) and Threat Risk (TR)
+    const threatRiskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
+    const residualRiskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
+
     threats.forEach(t => {
+        // Threat Risk (TR) - all detected threats at their original severity
         const sev = t.severity.toLowerCase();
-        if (severityCounts.hasOwnProperty(sev)) {
-            severityCounts[sev]++;
+        if (threatRiskCounts.hasOwnProperty(sev)) {
+            threatRiskCounts[sev]++;
+        }
+
+        // Residual Risk (RR) - only allowed attacks keep their severity level
+        // Blocked attacks don't contribute to residual risk counts
+        const isAllowed = (t.blocked === 'No' || t.blocked === false || !t.blocked);
+        if (isAllowed && residualRiskCounts.hasOwnProperty(sev)) {
+            residualRiskCounts[sev]++;
         }
     });
 
-    Object.keys(severityCounts).forEach(sev => {
+    // Display both counts in format: (RR / TR)
+    Object.keys(threatRiskCounts).forEach(sev => {
         const countEl = document.getElementById(`count-severity-${sev}`);
         if (countEl) {
-            countEl.textContent = `(${severityCounts[sev]})`;
+            countEl.textContent = `(${residualRiskCounts[sev]}/${threatRiskCounts[sev]})`;
         }
     });
 }
@@ -463,8 +690,9 @@ function stopAutoRotation() {
 }
 
 /**
- * Toggle auto focus mode
- * Cycles between showing only critical/high (15s) and all attacks (5s)
+ * Toggle Risk Focus mode
+ * ON: Shows only residual risk (allowed threats that got through)
+ * OFF: Shows all threats (both blocked and allowed)
  */
 function toggleAutoFocus() {
     isAutoFocus = !isAutoFocus;
@@ -479,104 +707,60 @@ function toggleAutoFocus() {
 }
 
 /**
- * Start auto focus cycling
+ * Enable Focus on Risk - show only residual risk (allowed threats) and toggle off Low filter
  */
 function startAutoFocus() {
-    console.log('🎯 Auto Focus enabled - cycling between focus and normal mode');
+    console.log('🎯 Focus on Risk enabled - showing only allowed threats (residual risk)');
     
-    // Start in focus mode
-    setFocusMode(true);
-
-    // Set up the cycling
-    runFocusCycle();
-}
-
-/**
- * Run the focus cycle
- */
-function runFocusCycle() {
-    if (!isAutoFocus) return;
-
-    if (isFocusMode) {
-        // Currently in focus mode, wait 15 seconds then switch to normal
-        autoFocusInterval = setTimeout(() => {
-            setFocusMode(false);
-            runFocusCycle();
-        }, AUTO_FOCUS_CONFIG.focusDuration);
-    } else {
-        // Currently in normal mode, wait 5 seconds then switch to focus
-        autoFocusInterval = setTimeout(() => {
-            setFocusMode(true);
-            runFocusCycle();
-        }, AUTO_FOCUS_CONFIG.normalDuration);
-    }
-}
-
-/**
- * Set focus mode on or off with smooth fade transition
- */
-function setFocusMode(focused) {
-    const previousMode = isFocusMode;
-    isFocusMode = focused;
-    
-    if (focused) {
-        console.log('🔴 Focus Mode: Highlighting CRITICAL and HIGH threats');
-    } else {
-        console.log('🟢 Normal Mode: Showing all threats');
+    // Switch to residual risk view (shows only allowed threats)
+    if (typeof setRiskView === 'function') {
+        setRiskView('residual');
     }
 
-    // Smoothly transition arcs by using the built-in transition duration
+    // Toggle off Low severity filter
+    if (typeof toggleFilter === 'function') {
+        // Only add Low to filter if it's not already filtered
+        if (!isFilterActive('severity', 'low')) {
+            toggleFilter('severity', 'low');
+        }
+    }
+
+    // Smoothly transition arcs
     if (globe && currentArcs.length > 0) {
-        // Set longer transition for smooth fade effect
         globe.arcsTransitionDuration(800);
-        
-        // Re-apply arcs data to trigger re-render with new styling
-        // The arcs will smoothly transition to new colors/sizes
         globe.arcsData(currentArcs);
-        
-        // Reset transition duration after animation
         setTimeout(() => {
             globe.arcsTransitionDuration(1000);
         }, 850);
     }
-
-    // Update feed styling with CSS transitions
-    updateFeedFocusMode(focused);
 }
 
 /**
- * Update feed items to match focus mode
- */
-function updateFeedFocusMode(focused) {
-    const feedItems = document.querySelectorAll('.attack-item');
-    feedItems.forEach(item => {
-        if (focused) {
-            if (item.classList.contains('critical') || item.classList.contains('high')) {
-                item.classList.add('focused');
-                item.classList.remove('faded');
-            } else {
-                item.classList.add('faded');
-                item.classList.remove('focused');
-            }
-        } else {
-            item.classList.remove('focused', 'faded');
-        }
-    });
-}
-
-/**
- * Stop auto focus cycling
+ * Disable Focus on Risk - show all threats and restore Low filter
  */
 function stopAutoFocus() {
-    console.log('🎯 Auto Focus disabled');
-    
-    if (autoFocusInterval) {
-        clearTimeout(autoFocusInterval);
-        autoFocusInterval = null;
+    console.log('🎯 Focus on Risk disabled - showing all threats');
+
+    // Switch to threat view (shows all threats)
+    if (typeof setRiskView === 'function') {
+        setRiskView('threat');
     }
-    
-    // Reset to normal mode
-    setFocusMode(false);
+
+    // Remove Low from severity filter if it was filtered
+    if (typeof toggleFilter === 'function' && typeof isFilterActive === 'function') {
+        if (isFilterActive('severity', 'low')) {
+            toggleFilter('severity', 'low');
+        }
+    }
+
+    // Smoothly transition arcs
+    if (globe && currentArcs.length > 0) {
+        globe.arcsTransitionDuration(800);
+        globe.arcsData(currentArcs);
+        setTimeout(() => {
+            globe.arcsTransitionDuration(1000);
+        }, 850);
+    }
 }
 
 /**
@@ -638,6 +822,57 @@ function updateRotateButton() {
 }
 
 /**
+ * Highlight a specific arc by threat index
+ * Ensures proper matching between feed items and arcs
+ */
+function highlightArc(threatIndex) {
+    if (!globe || !currentArcs) {
+        console.warn('Globe or arcs not ready for highlighting');
+        return;
+    }
+
+    // Validate index is within bounds
+    if (threatIndex < 0 || threatIndex >= currentArcs.length) {
+        console.warn(`Arc index ${threatIndex} out of bounds (0-${currentArcs.length - 1})`);
+        return;
+    }
+
+    highlightedArcIndex = threatIndex;
+    console.log(`Highlighting arc ${threatIndex} of ${currentArcs.length}`);
+
+    // Set smooth transition for highlighting
+    globe.arcsTransitionDuration(300);
+
+    // Re-render arcs with updated styling
+    globe.arcsData(currentArcs);
+
+    // Reset transition duration after animation
+    setTimeout(() => {
+        if (globe) globe.arcsTransitionDuration(1000);
+    }, 350);
+}
+
+/**
+ * Remove arc highlighting
+ */
+function unhighlightArcs() {
+    if (!globe) return;
+
+    highlightedArcIndex = null;
+
+    // Set smooth transition for unhighlighting
+    globe.arcsTransitionDuration(300);
+
+    // Re-render arcs with normal styling
+    globe.arcsData(currentArcs);
+
+    // Reset transition duration after animation
+    setTimeout(() => {
+        if (globe) globe.arcsTransitionDuration(1000);
+    }, 350);
+}
+
+/**
  * Resize globe when window resizes
  */
 window.addEventListener('resize', () => {
@@ -657,9 +892,14 @@ if (typeof window !== 'undefined') {
     window.toggleAutoRotate = toggleAutoRotate;
     window.toggleAutoFocus = toggleAutoFocus;
     window.highlightNewAttack = highlightNewAttack;
+    window.highlightArc = highlightArc;
+    window.unhighlightArcs = unhighlightArcs;
     window.MAP_CONFIG = MAP_CONFIG;
     window.AUTO_FOCUS_CONFIG = AUTO_FOCUS_CONFIG;
     window.calculateArcStroke = calculateArcStroke;
     window.updateCategoryCounts = updateCategoryCounts;
     window.isFocusMode = isFocusMode;
+    window.loadDefensiveCitiesFromConfig = loadDefensiveCitiesFromConfig;
+    window.DEFENSIVE_CITIES = DEFENSIVE_CITIES;
+    window.arcDisplayStats = arcDisplayStats;
 }

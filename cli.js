@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Application version - single source of truth
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.13.0-v1';
 
 // Colors for console output
 const colors = {
@@ -105,8 +105,8 @@ function generateSampleData() {
     print('\nGenerate Sample Data', 'cyan');
     print('═══════════════════', 'cyan');
 
-    rl.question('Number of threat events to generate (default: 500): ', (countInput) => {
-        const count = parseInt(countInput) || 500;
+    rl.question('Number of threat events to generate (default: 2000): ', (countInput) => {
+        const count = parseInt(countInput) || 2000;
         
         rl.question('Time range in hours (default: 168 = 7 days): ', (hoursInput) => {
             const hours = parseInt(hoursInput) || 168;

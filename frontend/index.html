@@ -17,33 +17,29 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <img id="branding-icon" class="branding-icon hidden" alt="Brand Logo" />
-            <h1><span id="app-icon">🌐</span> SOC Global Threat Visualiser</h1>
-            <div class="status-indicator">
-                <span class="status-dot"></span>
-                <span class="status-text">Test</span>
-            </div>
+            <button id="toggle-settings" class="btn btn-menu" title="Toggle Settings Panel">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
         </div>
         <div class="header-center">
+            <img id="branding-icon" class="branding-icon hidden" alt="Brand Logo" />
+            <h1>SOC Global Threat Visualiser</h1>
+        </div>
+        <div class="header-right">
             <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Threats Blocked</span>
-                    <span class="stat-value" id="total-threats">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Active</span>
-                    <span class="stat-value" id="active-threats">0</span>
-                </div>
                 <div class="stat-item">
                     <span class="stat-label">Critical</span>
                     <span class="stat-value critical" id="critical-threats">0</span>
                 </div>
+                <div class="stat-item">
+                    <span class="stat-label">Blocked</span>
+                    <span class="stat-value" id="total-threats">0</span>
+                </div>
             </div>
-        </div>
-        <div class="header-right">
-            <button id="toggle-settings" class="btn btn-hamburger" title="Toggle Settings Panel">
-                <span class="hamburger-icon">☰</span>
-            </button>
         </div>
     </header>
 
@@ -58,11 +54,21 @@
         </div>
 
         <div class="control-group">
-            <label>Auto Focus</label>
+            <label>Focus on Risk</label>
             <button id="toggle-focus" class="btn btn-secondary">
                 <span>🎯</span>
                 <span id="focus-text">Enable</span>
             </button>
+        </div>
+
+        <div class="control-group">
+            <label>Arc Display</label>
+            <select id="arc-display-percentage" class="btn btn-secondary" style="padding: 8px 12px;">
+                <option value="10">10%</option>
+                <option value="25">25%</option>
+                <option value="50">50%</option>
+                <option value="100" selected>100%</option>
+            </select>
         </div>
 
         <div class="control-group">
@@ -92,13 +98,17 @@
                 <option value="orange">🟠 Orange</option>
             </select>
         </div>
+
     </div>
 
-    <!-- Left Sidebar Attack Feed -->
+    <!-- Left Sidebar Threat Feed -->
     <div class="attack-sidebar" id="attack-sidebar">
         <div class="sidebar-header">
-            <h2>🔴 Attack Feed</h2>
-            <button id="pause-feed" class="btn btn-small">⏸</button>
+            <h2>🔴 Threat Feed</h2>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Test</span>
+            </div>
         </div>
         <div class="sidebar-content" id="feed-content">
             <!-- Attack items will be dynamically added here -->
@@ -149,30 +159,38 @@
                 <span class="legend-count" id="count-web-gateway-threats">(0)</span>
             </div>
 
-            <h3 style="margin-top: 15px;">Severity</h3>
+            <h3 style="margin-top: 15px;">Severity <span style="font-size: 10px; font-weight: normal; opacity: 0.7;">(RR/TR)</span></h3>
+            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 8px; line-height: 1.3;">
+                RR = Residual Risk (allowed)<br>
+                TR = Threat Risk (total detected)
+            </div>
             <div class="legend-item clickable" data-severity="low">
                 <span class="legend-color" style="background: #666;"></span>
                 <span class="legend-text">Low</span>
-                <span class="legend-count" id="count-severity-low">(0)</span>
+                <span class="legend-count" id="count-severity-low" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
             <div class="legend-item clickable" data-severity="medium">
                 <span class="legend-color" style="background: #cc8844;"></span>
                 <span class="legend-text">Medium</span>
-                <span class="legend-count" id="count-severity-medium">(0)</span>
+                <span class="legend-count" id="count-severity-medium" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
             <div class="legend-item clickable" data-severity="high">
                 <span class="legend-color" style="background: #ff6600;"></span>
                 <span class="legend-text">High</span>
-                <span class="legend-count" id="count-severity-high">(0)</span>
+                <span class="legend-count" id="count-severity-high" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
             <div class="legend-item clickable" data-severity="critical">
                 <span class="legend-color" style="background: #ff0000;"></span>
                 <span class="legend-text">Critical</span>
-                <span class="legend-count" id="count-severity-critical">(0)</span>
+                <span class="legend-count" id="count-severity-critical" title="Residual Risk / Threat Risk">(0/0)</span>
             </div>
 
-            <!-- Top 5 Attacker Locations (Moved here) -->
+            <!-- Top 3 Attacker Locations -->
             <div id="top-attackers-list" class="attacker-list">
+                <!-- Dynamically populated -->
+            </div>
+            <!-- Top 3 Attacked Targets -->
+            <div id="top-targets-list" class="attacker-list">
                 <!-- Dynamically populated -->
             </div>
         </div>
@@ -181,10 +199,11 @@
     <!-- Debug Info Bar -->
     <div class="debug-bar">
         <span class="app-name">SOC Global Threat Visualiser</span>
-        <span class="version">v<span id="app-version">1.4.0</span></span>
+        <span class="version">v<span id="app-version">1.13.0-v1</span></span>
         <span>CSV: <span id="csv-size">0 KB</span></span>
         <span>Entries: <span id="csv-entries">0</span></span>
         <span>Updated: <span id="last-updated">--</span></span>
+        <span class="debug-console-link" id="debug-console-link" title="Open Debug Console">Debug</span>
     </div>
 
     <!-- Attack Detail Modal -->
@@ -197,6 +216,21 @@
             <div class="modal-body">
                 <div id="attack-details">
                     <!-- Details will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Console Modal -->
+    <div id="debug-console-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>🔍 Debug Console</h2>
+                <span class="modal-close" onclick="closeDebugConsole()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="debug-console-content">
+                    <!-- Debug info will be populated dynamically -->
                 </div>
             </div>
         </div>
@@ -219,7 +253,7 @@
     <script src="js/ui.js"></script>
     <script>
         // Application version and commit
-        const APP_VERSION = '1.4.0';
+        const APP_VERSION = '1.13.0-v1';
         const COMMIT_HASH = '{{COMMIT_HASH}}'; // Will be replaced by build or shown as dev
 
         // Initialize the application
@@ -288,10 +322,16 @@
                     console.log('ℹ️ Using default branding');
                 }
 
+                // Load defensive cities from config before map init
+                if (typeof loadDefensiveCitiesFromConfig === 'function') {
+                    await loadDefensiveCitiesFromConfig();
+                }
+
                 // Initialize map first (only if Globe is loaded)
                 if (globeLoaded) {
                     console.log('📍 Initializing map...');
                     await initMap();
+                    // Auto-rotate and Risk Focus are OFF by default
                 }
 
                 // Initialize UI controls
